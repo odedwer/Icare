@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
-import { MockDataService } from './api';
+import { AmplifyDataService } from './api';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import LoginPage from './pages/LoginPage';
@@ -9,8 +9,7 @@ import SearchPage from './pages/SearchPage';
 import PatientPage from './pages/PatientPage';
 import AdminPage from './pages/AdminPage';
 
-// Swap MockDataService for a real AWS-backed service when ready
-const dataService = new MockDataService();
+const dataService = new AmplifyDataService();
 
 export default function App() {
   return (

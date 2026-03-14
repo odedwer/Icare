@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sandbox": "ampx sandbox",
+    "sandbox:delete": "ampx sandbox delete",
+    "seed": "npx tsx scripts/seed.ts",
+    "generate:outputs": "ampx generate outputs"
   },
   "dependencies": {
+    "@aws-amplify/backend": "^1.21.1",
+    "@aws-amplify/backend-cli": "^1.8.2",
+    "aws-amplify": "^6.16.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1"
@@ -17,6 +24,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.3",
     "vite": "^8.0.0"
   },
