@@ -17,6 +17,7 @@ Amplify.configure({
           Cognito: {
             userPoolId: custom.userPoolId,
             userPoolClientId: custom.userPoolClientId,
+            loginWith: { username: true },
           },
         },
       }
