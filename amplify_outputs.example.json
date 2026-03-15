@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/aws-amplify/amplify-backend/main/packages/client-config/src/client-config-schema/schema_v1.json",
+  "version": "1.4",
+  "data": {
+    "url": "REPLACE_WITH_APPSYNC_URL",
+    "aws_region": "REPLACE_WITH_REGION",
+    "default_authorization_type": "API_KEY",
+    "authorization_types": [],
+    "api_key": "REPLACE_WITH_API_KEY",
+    "model_introspection": {}
+  }
+}

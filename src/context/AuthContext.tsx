@@ -18,19 +18,22 @@ export function AuthProvider({ children, dataService }: { children: ReactNode; d
   const [permissions, setPermissions] = useState<WidgetPermission[]>([]);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('icare_user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-    dataService.getWidgetPermissions().then(setPermissions);
-    setLoading(false);
+    dataService.getCurrentSession().then(async (sessionUser) => {
+      if (sessionUser) {
+        setUser(sessionUser);
+        const perms = await dataService.getWidgetPermissions();
+        setPermissions(perms);
+      }
+      setLoading(false);
+    });
   }, [dataService]);
 
   const login = useCallback(async (username: string, password: string) => {
     const result = await dataService.login(username, password);
     if (result) {
       setUser(result);
-      sessionStorage.setItem('icare_user', JSON.stringify(result));
+      const perms = await dataService.getWidgetPermissions();
+      setPermissions(perms);
       return true;
     }
     return false;
@@ -38,8 +41,9 @@ export function AuthProvider({ children, dataService }: { children: ReactNode; d
 
   const logout = useCallback(() => {
     setUser(null);
-    sessionStorage.removeItem('icare_user');
-  }, []);
+    setPermissions([]);
+    dataService.logout();
+  }, [dataService]);
 
   const canEdit = useCallback((widgetType: WidgetType) => {
     if (!user) return false;

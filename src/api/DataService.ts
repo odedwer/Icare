@@ -29,6 +29,8 @@ export interface CreatePatientInput {
 export interface DataService {
   // Auth
   login(username: string, password: string): Promise<User | null>;
+  getCurrentSession(): Promise<User | null>;
+  logout(): Promise<void>;
   getUserById(id: string): Promise<User | null>;
 
   // Patients

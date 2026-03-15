@@ -23,11 +23,15 @@ function mockHash(plain: string): string {
 
 // ─── Seed Data ───────────────────────────────────────────────
 
-const USERS: User[] = [
-  { id: 'u0', name: 'מנהל מערכת', username: 'admin', passwordHash: mockHash('1234'), role: Role.Admin },
-  { id: 'u2', name: 'ד"ר דוד לוי', username: 'david', passwordHash: mockHash('1234'), role: Role.Doctor },
-  { id: 'u3', name: 'נועה מזרחי', username: 'noa', passwordHash: mockHash('1234'), role: Role.Nurse },
-  { id: 'u4', name: 'יוסי בן-ארי', username: 'yossi', passwordHash: mockHash('1234'), role: Role.Caregiver },
+interface UserWithPassword extends User {
+  _passwordHash: string;
+}
+
+const USERS: UserWithPassword[] = [
+  { id: 'u0', name: 'מנהל מערכת', username: 'admin', _passwordHash: mockHash('1234'), role: Role.Admin },
+  { id: 'u2', name: 'ד"ר דוד לוי', username: 'david', _passwordHash: mockHash('1234'), role: Role.Doctor },
+  { id: 'u3', name: 'נועה מזרחי', username: 'noa', _passwordHash: mockHash('1234'), role: Role.Nurse },
+  { id: 'u4', name: 'יוסי בן-ארי', username: 'yossi', _passwordHash: mockHash('1234'), role: Role.Caregiver },
 ];
 
 const PATIENTS: Patient[] = [
@@ -170,7 +174,7 @@ const WIDGET_CONFIGS: WidgetConfig[] = [
 // ─── Mock Implementation ─────────────────────────────────────
 
 export class MockDataService implements DataService {
-  private users = [...USERS];
+  private users: UserWithPassword[] = [...USERS];
   private patients = [...PATIENTS];
   private widgets = [...WIDGETS];
   private permissions = [...PERMISSIONS];
@@ -180,13 +184,24 @@ export class MockDataService implements DataService {
 
   async login(username: string, password: string): Promise<User | null> {
     const user = this.users.find((u) => u.username === username);
-    if (!user || !checkPassword(password, user.passwordHash)) return null;
-    return { ...user, passwordHash: '' }; // never expose hash
+    if (!user || !checkPassword(password, user._passwordHash)) return null;
+    const { _passwordHash: _, ...userWithoutHash } = user;
+    return userWithoutHash;
+  }
+
+  async getCurrentSession(): Promise<User | null> {
+    return null;
+  }
+
+  async logout(): Promise<void> {
+    // no-op for mock
   }
 
   async getUserById(id: string): Promise<User | null> {
     const user = this.users.find((u) => u.id === id);
-    return user ? { ...user, passwordHash: '' } : null;
+    if (!user) return null;
+    const { _passwordHash: _, ...userWithoutHash } = user;
+    return userWithoutHash;
   }
 
   async searchPatients(query: string): Promise<Patient[]> {
@@ -267,22 +282,23 @@ export class MockDataService implements DataService {
   // ─── Admin — Users ──────────────────────────────────────────
 
   async getAllUsers(): Promise<User[]> {
-    return this.users.map((u) => ({ ...u, passwordHash: '' }));
+    return this.users.map(({ _passwordHash: _, ...u }) => u);
   }
 
   async createUser(input: CreateUserInput): Promise<User> {
     const exists = this.users.find((u) => u.username === input.username);
     if (exists) throw new Error('שם המשתמש כבר קיים');
 
-    const user: User = {
+    const user: UserWithPassword = {
       id: `u_${Date.now()}`,
       name: input.name,
       username: input.username,
-      passwordHash: mockHash(input.password),
+      _passwordHash: mockHash(input.password),
       role: input.role,
     };
     this.users.push(user);
-    return { ...user, passwordHash: '' };
+    const { _passwordHash: _, ...userWithoutHash } = user;
+    return userWithoutHash;
   }
 
   async updateUser(id: string, updates: Partial<CreateUserInput>): Promise<User> {
@@ -299,10 +315,11 @@ export class MockDataService implements DataService {
       ...user,
       name: updates.name ?? user.name,
       username: updates.username ?? user.username,
-      passwordHash: updates.password ? mockHash(updates.password) : user.passwordHash,
+      _passwordHash: updates.password ? mockHash(updates.password) : user._passwordHash,
       role: updates.role ?? user.role,
     };
-    return { ...this.users[idx], passwordHash: '' };
+    const { _passwordHash: _, ...userWithoutHash } = this.users[idx];
+    return userWithoutHash;
   }
 
   async deleteUser(id: string): Promise<void> {
