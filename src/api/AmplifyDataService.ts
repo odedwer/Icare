@@ -1,5 +1,5 @@
 import { generateClient } from 'aws-amplify/data';
-import { signIn, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, signOut, getCurrentUser } from 'aws-amplify/auth';
 import type { Schema } from '../../amplify/data/resource';
 import type { DataService, CreateUserInput, CreatePatientInput } from './DataService';
 import {
@@ -127,12 +127,8 @@ export class AmplifyDataService implements DataService {
 
   async getCurrentSession(): Promise<User | null> {
     try {
-      const cognitoUser = await getCurrentUser();
-      const attrs = await fetchUserAttributes();
-      const sub = attrs.sub ?? cognitoUser.userId;
-      if (!sub) return null;
-
-      const { data } = await this.client.models.UserRecord.listUserRecordByCognitoId({ cognitoId: sub });
+      const { userId } = await getCurrentUser();
+      const { data } = await this.client.models.UserRecord.listUserRecordByCognitoId({ cognitoId: userId });
       const record = data[0];
       return record ? toUser(record) : null;
     } catch {

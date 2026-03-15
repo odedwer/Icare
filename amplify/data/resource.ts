@@ -10,7 +10,7 @@ const schema = a.schema({
       role: a.string().required(),
     })
     .secondaryIndexes((index) => [index('username'), index('cognitoId')])
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   Patient: a
     .model({
@@ -22,7 +22,7 @@ const schema = a.schema({
       gender: a.string().required(),
     })
     .secondaryIndexes((index) => [index('idNumber')])
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   PatientWidget: a
     .model({
@@ -33,7 +33,7 @@ const schema = a.schema({
       updatedBy: a.string().required(),
     })
     .secondaryIndexes((index) => [index('patientId')])
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   WidgetPermission: a
     .model({
@@ -41,7 +41,7 @@ const schema = a.schema({
       rolesAllowedToEdit: a.string().array().required(),
     })
     .secondaryIndexes((index) => [index('widgetType')])
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   WidgetConfig: a
     .model({
@@ -50,7 +50,7 @@ const schema = a.schema({
       options: a.string().array().required(),
     })
     .secondaryIndexes((index) => [index('widgetType')])
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   AuditLogEntry: a
     .model({
@@ -63,7 +63,7 @@ const schema = a.schema({
     })
     .secondaryIndexes((index) => [index('patientId')])
     // Audit log is append-only: deny update/delete to prevent history tampering
-    .authorization((allow) => [allow.authenticated().to(['create', 'read'])]),
+    .authorization((allow) => [allow.publicApiKey().to(['create', 'read'])]),
 
   RoleDefinition: a
     .model({
@@ -72,7 +72,7 @@ const schema = a.schema({
       isBuiltIn: a.boolean().required(),
     })
     .secondaryIndexes((index) => [index('roleId')])
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   userAdminCreate: a
     .mutation()
@@ -83,7 +83,7 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   userAdminSetPassword: a
     .mutation()
@@ -93,7 +93,7 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   userAdminDelete: a
     .mutation()
@@ -102,7 +102,7 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -110,6 +110,7 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'userPool',
+    defaultAuthorizationMode: 'apiKey',
+    apiKeyAuthorizationMode: { expiresInDays: 30 },
   },
 });

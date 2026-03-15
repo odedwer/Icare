@@ -17,7 +17,7 @@ export const handler: AppSyncResolverHandler<
   const args = event.arguments;
 
   if (fieldName === 'userAdminCreate') {
-    const { username, password, role } = args as {
+    const { username, password } = args as {
       username: string;
       password: string;
       role: string;
@@ -28,9 +28,7 @@ export const handler: AppSyncResolverHandler<
         UserPoolId: USER_POOL_ID,
         Username: username,
         MessageAction: 'SUPPRESS',
-        UserAttributes: [
-          { Name: 'custom:role', Value: role },
-        ],
+        UserAttributes: [],
       }),
     );
 

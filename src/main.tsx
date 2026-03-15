@@ -5,7 +5,23 @@ import outputs from '../amplify_outputs.json';
 import App from './App';
 import './styles.css';
 
-Amplify.configure(outputs);
+// The Cognito User Pool is created via raw CDK (bypassing defineAuth) so its IDs
+// are written into amplify_outputs.json under the 'custom' key by backend.addOutput.
+const custom = (outputs as any).custom as { userPoolId?: string; userPoolClientId?: string } | undefined;
+
+Amplify.configure({
+  ...outputs,
+  ...(custom?.userPoolId && custom?.userPoolClientId
+    ? {
+        Auth: {
+          Cognito: {
+            userPoolId: custom.userPoolId,
+            userPoolClientId: custom.userPoolClientId,
+          },
+        },
+      }
+    : {}),
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

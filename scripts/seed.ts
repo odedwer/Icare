@@ -21,24 +21,33 @@ const client = generateClient<Schema>();
 
 // ─── Cognito setup ───────────────────────────────────────────
 
-const userPoolId = (outputs as any).auth?.user_pool_id as string | undefined;
+// The User Pool is created via raw CDK (bypassing defineAuth), so its ID is not in
+// amplify_outputs.json. Read it from environment variables instead.
+// Set VITE_USER_POOL_ID and VITE_USER_POOL_ID in .env.local (same vars used by the frontend).
+const custom = (outputs as any).custom as { userPoolId?: string; region?: string } | undefined;
+const userPoolId = (
+  (outputs as any).auth?.user_pool_id as string | undefined ??
+  custom?.userPoolId ??
+  process.env.VITE_USER_POOL_ID
+)?.trim();
+
 if (!userPoolId) {
   throw new Error(
-    'Could not find user_pool_id in amplify_outputs.json. ' +
-    'Make sure auth is deployed (run `ampx sandbox` first).',
+    'Could not find User Pool ID in amplify_outputs.json (.custom.userPoolId). ' +
+    'Run the sandbox first, or set VITE_USER_POOL_ID in .env.local.',
   );
 }
 
-const region = (outputs as any).auth?.aws_region as string | undefined ?? 'us-east-1';
+const region = (outputs as any).auth?.aws_region as string | undefined ?? custom?.region ?? 'us-east-1';
 const cognitoClient = new CognitoIdentityProviderClient({ region });
 
 // ─── Seed Data ───────────────────────────────────────────────
 
 const USERS = [
-  { name: 'שרה כהן', username: 'sarah', password: '1234', role: 'admin' },
-  { name: 'ד"ר דוד לוי',  username: 'david', password: '1234', role: 'doctor' },
-  { name: 'נועה מזרחי',   username: 'noa',   password: '1234', role: 'nurse' },
-  { name: 'יוסי בן-ארי',  username: 'yossi', password: '1234', role: 'caregiver' },
+  { name: 'שרה כהן',      username: 'sarah', password: 'Admin1234', role: 'admin' },
+  { name: 'ד"ר דוד לוי',  username: 'david', password: 'Admin1234', role: 'doctor' },
+  { name: 'נועה מזרחי',   username: 'noa',   password: 'Admin1234', role: 'nurse' },
+  { name: 'יוסי בן-ארי',  username: 'yossi', password: 'Admin1234', role: 'caregiver' },
 ];
 
 const PATIENTS = [
@@ -286,9 +295,7 @@ async function main() {
         UserPoolId: userPoolId,
         Username: u.username,
         MessageAction: 'SUPPRESS',
-        UserAttributes: [
-          { Name: 'custom:role', Value: u.role },
-        ],
+        UserAttributes: [],
       }),
     );
 
