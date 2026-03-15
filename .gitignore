@@ -2,7 +2,6 @@
 /out-tsc
 /dist
 /.amplify
-/amplify_outputs.json
 /.env.local
 
 /node_modules
