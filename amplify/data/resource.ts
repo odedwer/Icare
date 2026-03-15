@@ -107,6 +107,13 @@ const schema = a.schema({
 
 export type Schema = ClientSchema<typeof schema>;
 
+// Authorization note: API key auth is used here intentionally. Switching to
+// allow.authenticated() (Cognito/IAM) triggers an Amplify Gen2 internal
+// MultipleSingletonResourcesError when the User Pool is created via raw CDK
+// (required because defineAuth enforces email/phone, which this app does not use).
+// Mitigations: 30-day key rotation, key is not a deployment secret (Amplify
+// generates it per environment), and Cognito still protects all write operations
+// through the admin Lambda which validates the caller's session server-side.
 export const data = defineData({
   schema,
   authorizationModes: {

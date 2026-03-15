@@ -111,8 +111,14 @@ function toRoleDefinition(r: RoleRecord): RoleDefinition {
 // ─── Service ──────────────────────────────────────────────────
 
 export class AmplifyDataService implements DataService {
-  // Initialized lazily so that Amplify.configure() has run before first use
-  private client = generateClient<Schema>();
+  // Lazily initialized on first API call so that Amplify.configure() has already
+  // run by the time generateClient() is invoked. The class is instantiated at
+  // module scope in App.tsx, which is evaluated before Amplify.configure() in main.tsx.
+  private _client: ReturnType<typeof generateClient<Schema>> | null = null;
+  private get client(): ReturnType<typeof generateClient<Schema>> {
+    if (!this._client) this._client = generateClient<Schema>();
+    return this._client;
+  }
 
   // ─── Auth ──────────────────────────────────────────────────
 
