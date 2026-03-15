@@ -1,281 +1,277 @@
-# 🏥 ICare — מערכת ניהול מידע לדיירי מעון
+# 🏥 ICare — Residential Care Information System
 
-מערכת ווב פנימית ומאובטחת לצוותי טיפול במעונות לאנשים עם מוגבלות שכלית.
-המערכת מאפשרת חיפוש מהיר של דיירים וצפייה/עריכה של מידע טיפולי קריטי המוצג ככרטיסי ווידג'טים בדף פרופיל הדייר.
-
----
-
-## 📋 תוכן עניינים
-
-- [סקירה כללית](#-סקירה-כללית)
-- [טכנולוגיות](#-טכנולוגיות)
-- [התקנה והפעלה](#-התקנה-והפעלה)
-- [משתמשי דמו](#-משתמשי-דמו)
-- [מבנה הפרויקט](#-מבנה-הפרויקט)
-- [מסכים ראשיים](#-מסכים-ראשיים)
-- [מערכת הווידג'טים](#-מערכת-הווידגטים)
-- [תפקידים והרשאות](#-תפקידים-והרשאות)
-- [פאנל ניהול](#-פאנל-ניהול)
-- [ארכיטקטורה](#-ארכיטקטורה)
-- [אבטחה](#-אבטחה)
+A secure internal web application for caregivers in residential facilities for people with intellectual disabilities. ICare enables quick resident lookup and viewing/editing of critical care information displayed as widget cards on each resident's profile page.
 
 ---
 
-## 🌟 סקירה כללית
+## 📋 Table of Contents
 
-ICare תוכננה לשימוש על ידי מטפלים, אחיות, רופאים ובעלי תפקידים נוספים במעונות.
-המערכת מספקת גישה מהירה למידע חיוני על כל דייר — רגישויות, תרופות, יציבות בהליכה, תוכניות טיפול ועוד.
-
-### תכונות עיקריות
-
-- 🔍 **חיפוש מהיר** — חיפוש דייר לפי שם או תעודת זהות עם השלמה אוטומטית
-- 🗂️ **כרטיסי מידע (ווידג'טים)** — 9 סוגי מידע מוגדרים לכל דייר
-- 🔐 **הרשאות מבוססות תפקיד (RBAC)** — שליטה על מי יכול לערוך כל ווידג'ט
-- 👤 **פאנל ניהול מלא** — ניהול משתמשים, דיירים, תפקידים, הרשאות והגדרות ווידג'טים
-- 📝 **יומן ביקורת (Audit Log)** — תיעוד אוטומטי של כל שינוי
-- 🌐 **תמיכה בעברית ו-RTL** — כל הממשק בעברית עם כיוון ימין-לשמאל
+- [Overview](#-overview)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Demo Credentials](#-demo-credentials)
+- [Project Structure](#-project-structure)
+- [Main Screens](#-main-screens)
+- [Widget System](#-widget-system)
+- [Roles & Permissions](#-roles--permissions)
+- [Admin Panel](#-admin-panel)
+- [Architecture](#-architecture)
+- [Security](#-security)
 
 ---
 
-## 🛠️ טכנולוגיות
+## 🌟 Overview
 
-| טכנולוגיה | שימוש |
+ICare is designed for caregivers, nurses, doctors, and other professionals working in residential care facilities. It provides fast access to vital resident information — allergies, medications, walking stability, care plans, and more.
+
+### Key Features
+
+- 🔍 **Quick Search** — Find residents by name or ID number with autocomplete
+- 🗂️ **Information Cards (Widgets)** — 9 configurable data types per resident
+- 🔐 **Role-Based Access Control (RBAC)** — Per-widget edit permissions
+- 👤 **Full Admin Panel** — Manage users, residents, roles, permissions, and widget settings
+- 📝 **Audit Log** — Automatic logging of every data change
+- 🌐 **Hebrew & RTL** — Full Hebrew interface with right-to-left layout
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Usage |
 |---|---|
-| **React 19** | ספריית UI |
-| **TypeScript** | שפת תכנות |
-| **Vite** | כלי בנייה ופיתוח |
-| **React Router v7** | ניתוב |
-| **React Context** | ניהול מצב (אימות + נתונים) |
+| **React 19** | UI library |
+| **TypeScript** | Programming language |
+| **Vite** | Build tool & dev server |
+| **React Router v7** | Client-side routing |
+| **React Context** | State management (auth + data) |
 
 ---
 
-## 🚀 התקנה והפעלה
+## 🚀 Getting Started
 
-### דרישות מקדימות
+### Prerequisites
 
 - Node.js 18+
 - npm
 
-### שלבים
+### Installation
 
 ```bash
-# שכפול הפרויקט
+# Clone the repository
 git clone https://github.com/amirlevy1170/Icare.git
 cd Icare
 
-# התקנת תלויות
+# Install dependencies
 npm install
 
-# הפעלת שרת פיתוח
+# Start dev server
 npm run dev
 ```
 
-השרת יעלה בכתובת **http://localhost:3000**
+The app will be available at **http://localhost:3000**
 
-### פקודות נוספות
+### Additional Commands
 
 ```bash
-npm run build    # בדיקת טיפוסים (tsc) + בניית גרסת ייצור → dist/
-npm run preview  # הפעלת גרסת ייצור מקומית
+npm run build    # Type-check (tsc) + production build → dist/
+npm run preview  # Serve the production build locally
 ```
 
 ---
 
-## 👥 משתמשי דמו
+## 👥 Demo Credentials
 
-כל הסיסמאות הן `1234`
+All passwords are `1234`
 
-| שם משתמש | סיסמה | תפקיד | הרשאות |
+| Username | Password | Role | Access |
 |---|---|---|---|
-| `admin` | `1234` | מנהל | גישה מלאה + פאנל ניהול |
-| `david` | `1234` | רופא | עריכת ווידג'טים רפואיים |
-| `noa` | `1234` | אחות | עריכת ווידג'טים סיעודיים |
-| `yossi` | `1234` | מטפל | עריכת אירועים חריגים |
+| `admin` | `1234` | Admin (מנהל) | Full access + admin panel |
+| `david` | `1234` | Doctor (רופא) | Edit medical widgets |
+| `noa` | `1234` | Nurse (אחות) | Edit nursing widgets |
+| `yossi` | `1234` | Caregiver (מטפל) | Edit exceptional events |
 
 ---
 
-## 📂 מבנה הפרויקט
+## 📂 Project Structure
 
 ```
 src/
 ├── api/
-│   ├── DataService.ts          # ממשק שירות נתונים (Interface)
-│   ├── MockDataService.ts      # מימוש בזיכרון (98 דיירים אמיתיים)
-│   └── index.ts                # ייצוא
+│   ├── DataService.ts          # Data service interface
+│   ├── MockDataService.ts      # In-memory implementation (98 real residents)
+│   └── index.ts                # Exports
 ├── components/
-│   ├── AdminRoute.tsx          # שומר מסלול — מנהל בלבד
-│   ├── ProtectedRoute.tsx      # שומר מסלול — משתמש מחובר
-│   ├── WidgetCard.tsx          # כרטיס ווידג'ט (תצוגה + עריכה)
+│   ├── AdminRoute.tsx          # Route guard — admin only
+│   ├── ProtectedRoute.tsx      # Route guard — authenticated users
+│   ├── WidgetCard.tsx          # Widget card (view + edit mode)
 │   └── admin/
-│       ├── PatientForm.tsx     # טופס הוספת דייר
-│       ├── PermissionsManager.tsx  # מטריצת הרשאות (תפקידים × ווידג'טים)
-│       ├── RoleManagement.tsx  # ניהול תפקידים (הוספה/מחיקה)
-│       ├── UserManagement.tsx  # ניהול משתמשים (CRUD)
-│       └── WidgetConfigManager.tsx # הגדרת סוג קלט לכל ווידג'ט
+│       ├── PatientForm.tsx     # Add new resident form
+│       ├── PermissionsManager.tsx  # Permissions matrix (roles × widgets)
+│       ├── RoleManagement.tsx  # Role management (add/delete)
+│       ├── UserManagement.tsx  # User CRUD
+│       └── WidgetConfigManager.tsx # Widget input type configuration
 ├── context/
-│   ├── AuthContext.tsx         # הקשר אימות (login/logout)
-│   └── DataContext.tsx         # הקשר גישה לנתונים
+│   ├── AuthContext.tsx         # Authentication context (login/logout)
+│   └── DataContext.tsx         # Data access context
 ├── pages/
-│   ├── AdminPage.tsx           # דף ניהול (5 לשוניות)
-│   ├── LoginPage.tsx           # דף כניסה
-│   ├── PatientPage.tsx         # דף פרופיל דייר
-│   └── SearchPage.tsx          # דף חיפוש (דף הבית)
+│   ├── AdminPage.tsx           # Admin panel (5 tabs)
+│   ├── LoginPage.tsx           # Login page
+│   ├── PatientPage.tsx         # Resident profile page
+│   └── SearchPage.tsx          # Search / home page
 ├── types/
-│   └── index.ts                # טיפוסים, enum-ים, קבועים
-├── styles.css                  # כל הסגנונות
-├── main.tsx                    # נקודת כניסה
-└── App.tsx                     # הגדרת ניתוב
+│   └── index.ts                # Types, enums, constants
+├── styles.css                  # All styles
+├── main.tsx                    # Entry point
+└── App.tsx                     # Router configuration
 ```
 
 ---
 
-## 🖥️ מסכים ראשיים
+## 🖥️ Main Screens
 
-### 1. דף כניסה (`/login`)
-מסך התחברות עם שם משתמש וסיסמה. לאחר כניסה מוצלחת, המשתמש מועבר לדף החיפוש.
+### 1. Login (`/login`)
+Username/password authentication. Redirects to the search page on success.
 
-### 2. דף חיפוש / דף הבית (`/`)
-- שדה חיפוש עם השלמה אוטומטית
-- חיפוש לפי שם מלא או תעודת זהות
-- לחיצה על תוצאה מעבירה לפרופיל הדייר
+### 2. Search / Home (`/`)
+- Search field with autocomplete
+- Search by full name or ID number
+- Click a result to navigate to the resident's profile
 
-### 3. דף פרופיל דייר (`/patient/:id`)
-- **כותרת** — תמונה, שם מלא, ת.ז., קבוצה, מין, גיל
-- **רשת ווידג'טים** — 9 כרטיסי מידע בתצוגת גריד
-- כל כרטיס ניתן לעריכה רק אם לתפקיד המשתמש יש הרשאה
+### 3. Resident Profile (`/patient/:id`)
+- **Header** — Photo, full name, ID number, group, gender, age
+- **Widget Grid** — 9 information cards in a responsive grid layout
+- Each card is editable only if the user's role has permission
 
-### 4. פאנל ניהול (`/admin`) — מנהל בלבד
-- 5 לשוניות: משתמשים, דיירים, הרשאות, תפקידים, הגדרות ווידג'טים
+### 4. Admin Panel (`/admin`) — Admin only
+- 5 tabs: Users, Residents, Permissions, Roles, Widget Settings
 
 ---
 
-## 🗂️ מערכת הווידג'טים
+## 🗂️ Widget System
 
-כל מידע על דייר מיוצג כ-**ווידג'ט** בעל סוג מוגדר:
+Every piece of resident information is represented as a **widget** with a defined type:
 
-| ווידג'ט | תיאור |
+| Widget | Description |
 |---|---|
-| 🍽️ מרקם מזון | סוג המזון (רגיל, רך, מרוסק, נוזלי, מעובה) |
-| 🚶 יציבות בהליכה | רמת ניידות (עצמאי, ליווי, כיסא גלגלים וכו') |
-| ⚠️ תכנית ניהול סיכונים | סיכונים מיוחדים ותוכניות התמודדות |
-| 👨‍👩‍👧 פרטי אפוטרופוס | מידע על אפוטרופוס ממונה |
-| 💊 קרדקס תרופות | רשימת תרופות פעילות |
-| 🤧 רגישויות | אלרגיות ורגישויות ידועות |
-| 🏥 אבחנות רפואיות | אבחנות רפואיות עדכניות |
-| 📈 תוכנית קידום אישית | תוכנית התפתחותית וחינוכית |
-| 🔔 אירועים חריגים | תיעוד אירועים מיוחדים |
+| 🍽️ Food Texture (מרקם מזון) | Food type (regular, soft, puréed, liquid, thickened) |
+| 🚶 Walking Stability (יציבות בהליכה) | Mobility level (independent, assisted, wheelchair, etc.) |
+| ⚠️ Risk Management Plan (תכנית ניהול סיכונים) | Special risks and mitigation plans |
+| 👨‍👩‍👧 Guardian Details (פרטי אפוטרופוס) | Legal guardian information |
+| 💊 Medication Cardex (קרדקס תרופות) | Active medication list |
+| 🤧 Sensitivities (רגישויות) | Known allergies and sensitivities |
+| 🏥 Medical Diagnoses (אבחנות רפואיות) | Current medical diagnoses |
+| 📈 Personal Development Plan (תוכנית קידום אישית) | Educational and developmental plan |
+| 🔔 Exceptional Events (אירועים חריגים) | Special incident documentation |
 
-### סוגי קלט
+### Input Types
 
-כל ווידג'ט ניתן להגדרה כ:
-- **טקסט חופשי** — שדה טקסט פתוח
-- **בחירה מרשימה** — תפריט נפתח עם אפשרויות מוגדרות מראש
+Each widget can be configured as:
+- **Free text** — Open text field
+- **Select from list** — Dropdown with predefined options
 
-המנהל יכול לשנות את סוג הקלט ולערוך את רשימת האפשרויות דרך פאנל הניהול.
+The admin can change input types and manage option lists through the admin panel.
 
 ---
 
-## 👔 תפקידים והרשאות
+## 👔 Roles & Permissions
 
-המערכת כוללת 13 תפקידים מקצועיים מובנים:
+The system includes 13 built-in professional roles:
 
-| תפקיד | מזהה |
+| Role (Hebrew) | Role ID |
 |---|---|
-| רופא | `doctor` |
-| פסיכיאטר | `psychiatrist` |
-| פיזיותרפיסט | `physiotherapist` |
-| מרפא בעיסוק | `occupational_therapist` |
-| תזונאי | `dietitian` |
-| מטפל | `caregiver` |
-| אחות | `nurse` |
-| אחות אחראית | `head_nurse` |
-| מרכז תוכניות קידום | `development_coordinator` |
-| רכז חינוך | `education_coordinator` |
-| רכז תעסוקה | `employment_coordinator` |
-| מנהל | `admin` |
-| עובד סוציאלי | `social_worker` |
+| Doctor (רופא) | `doctor` |
+| Psychiatrist (פסיכיאטר) | `psychiatrist` |
+| Physiotherapist (פיזיותרפיסט) | `physiotherapist` |
+| Occupational Therapist (מרפא בעיסוק) | `occupational_therapist` |
+| Dietitian (תזונאי) | `dietitian` |
+| Caregiver (מטפל) | `caregiver` |
+| Nurse (אחות) | `nurse` |
+| Head Nurse (אחות אחראית) | `head_nurse` |
+| Development Coordinator (מרכז תוכניות קידום) | `development_coordinator` |
+| Education Coordinator (רכז חינוך) | `education_coordinator` |
+| Employment Coordinator (רכז תעסוקה) | `employment_coordinator` |
+| Admin (מנהל) | `admin` |
+| Social Worker (עובד סוציאלי) | `social_worker` |
 
-### מטריצת הרשאות
+### Permissions Matrix
 
-ההרשאות מוגדרות **לכל ווידג'ט בנפרד** — לכל סוג ווידג'ט מוגדר אילו תפקידים רשאים לערוך אותו.
-כל המשתמשים המחוברים יכולים **לצפות** בכל הווידג'טים, אך רק בעלי הרשאה יכולים **לערוך**.
+Permissions are defined **per widget type** — each widget type specifies which roles are allowed to edit it. All authenticated users can **view** all widgets, but only authorized roles can **edit** them.
 
-המנהל יכול לשנות את מטריצת ההרשאות דרך פאנל הניהול, וגם ליצור תפקידים חדשים.
+The admin can modify the permissions matrix and create custom roles through the admin panel.
 
 ---
 
-## ⚙️ פאנל ניהול
+## ⚙️ Admin Panel
 
-נגיש רק למשתמשים עם תפקיד **מנהל** (כפתור ⚙️ בכותרת).
+Accessible only to users with the **Admin** role (⚙️ button in the header).
 
-### לשוניות
+### Tabs
 
-| לשונית | פונקציונליות |
+| Tab | Functionality |
 |---|---|
-| **ניהול משתמשים** | הוספה, עריכה ומחיקה של משתמשים. הגדרת שם, שם משתמש, סיסמה ותפקיד |
-| **הוספת דייר** | טופס הוספת דייר חדש (שם, ת.ז., קבוצה, תאריך לידה, מין, תמונה) |
-| **ניהול הרשאות** | מטריצת checkbox — תפקידים × ווידג'טים. סימון/ביטול הרשאת עריכה |
-| **ניהול תפקידים** | הוספה ומחיקה של תפקידים מותאמים אישית (תפקידים מובנים מוגנים) |
-| **הגדרות ווידג'טים** | הגדרת סוג קלט (טקסט חופשי / בחירה מרשימה) וניהול אפשרויות |
+| **User Management** | Add, edit, and delete users. Set name, username, password, and role |
+| **Add Resident** | Form to add a new resident (name, ID, group, date of birth, gender, photo) |
+| **Permissions** | Checkbox matrix — roles × widgets. Toggle edit permission per role per widget |
+| **Role Management** | Add and delete custom roles (built-in roles are protected from deletion) |
+| **Widget Settings** | Configure input type (free text / select) and manage dropdown options per widget |
 
 ---
 
-## 🏗️ ארכיטקטורה
+## 🏗️ Architecture
 
-### תבנית Data Service
+### Data Service Pattern
 
-כל הגישה לנתונים עוברת דרך **ממשק `DataService`** (`src/api/DataService.ts`).
-המימוש הנוכחי הוא `MockDataService` — נתונים בזיכרון שמתאפסים בכל רענון דף.
+All data access goes through the **`DataService` interface** (`src/api/DataService.ts`). The current implementation is `MockDataService` — in-memory data that resets on page refresh.
 
-#### מעבר לשירות ענן (AWS)
+#### Switching to a Cloud Backend (e.g., AWS)
 
-1. צרו מחלקה חדשה שמממשת את `DataService` (לדוגמה `AwsDataService`)
-2. החליפו את האתחול ב-`src/App.tsx`
+1. Create a new class implementing `DataService` (e.g., `AwsDataService`)
+2. Swap the instantiation in `src/App.tsx`
 
 ```typescript
-// במקום:
+// Replace:
 const dataService = new MockDataService();
-// השתמשו ב:
+// With:
 const dataService = new AwsDataService(config);
 ```
 
-### ניהול מצב
+### State Management
 
-- **`AuthContext`** — אימות משתמש (login/logout), שומר את המשתמש המחובר
-- **`DataContext`** — מספק גישה ל-`DataService` לכל הקומפוננטות
+- **`AuthContext`** — User authentication (login/logout), stores the currently logged-in user
+- **`DataContext`** — Provides `DataService` access to all components via React Context
 
-### מודל נתונים
+### Data Model
 
 ```
 User ─── role (string) ──→ RoleDefinition
   │
-Patient ─── id ──→ PatientWidget[] (9 ווידג'טים)
+Patient ─── id ──→ PatientWidget[] (9 widgets)
   │                    │
-  │                    └── widgetType ──→ WidgetPermission (הרשאות)
-  │                                  ──→ WidgetConfig (סוג קלט)
+  │                    └── widgetType ──→ WidgetPermission (edit permissions)
+  │                                  ──→ WidgetConfig (input type settings)
   │
-  └── AuditLog[] (יומן שינויים)
+  └── AuditLog[] (change history)
 ```
 
-### נתוני דיירים
+### Resident Data
 
-המערכת מגיעה עם **98 דיירים אמיתיים** שיובאו מקובץ מצבת דיירים של המעון:
-- 92 דיירים פעילים (אגף מש"ה, שיקום ונכים, אוטיסטים)
-- 5 דיירי משרד הבריאות
-- 1 דייר עם נתונים חלקיים
-
----
-
-## 🔒 אבטחה
-
-- ✅ סיסמאות מוצפנות (hash) — לעולם לא נשמרות כטקסט גלוי
-- ✅ כל עריכת ווידג'ט מוודאת הרשאת תפקיד מול `WidgetPermission`
-- ✅ כל שינוי יוצר רשומת `AuditLog` — רשומות ביקורת הן append-only
-- ✅ הגנת מסלולים — מסלולי ניהול נגישים רק למנהל
-- ✅ ממשק RTL בעברית מלאה
+The system comes pre-loaded with **98 real residents** imported from the facility's roster file:
+- 92 active residents (across groups: אגף מש"ה, שיקום ונכים, אוטיסטים)
+- 5 Ministry of Health residents
+- 1 resident with partial data
 
 ---
 
-## 📄 רישיון
+## 🔒 Security
 
-פרויקט פנימי — לשימוש פנים-ארגוני בלבד.
+- ✅ Passwords are hashed — never stored as plain text
+- ✅ Every widget edit validates the user's role against `WidgetPermission`
+- ✅ Every change creates an `AuditLog` entry — audit records are append-only, never deleted
+- ✅ Route protection — admin routes are accessible only to admin users
+- ✅ Full Hebrew RTL interface
+
+---
+
+## 📄 License
+
+Internal project — for organizational use only.
