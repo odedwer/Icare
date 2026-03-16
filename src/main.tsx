@@ -17,7 +17,6 @@ Amplify.configure({
           aws_region: 'us-east-1',
           user_pool_id: custom.userPoolId,
           user_pool_client_id: custom.userPoolClientId,
-          username_attributes: ['username'],
         },
       }
     : {}),
