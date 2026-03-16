@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import type { PatientWidget, WidgetConfig } from '../types';
 import { WIDGET_META } from '../types';
+import { getTrafficLight } from '../utils/trafficLight';
 
 interface Props {
   widget: PatientWidget;
@@ -48,11 +49,20 @@ export default function WidgetCard({ widget, onSaved }: Props) {
     setError('');
   };
 
+  const tl = editing ? 'neutral' : getTrafficLight(widget.widgetType, widget.value);
+
   return (
-    <div className={`widget-card ${editing ? 'widget-editing' : ''}`}>
+    <div className={`widget-card tl-${tl} ${editing ? 'widget-editing' : ''}`}>
       <div className="widget-header">
-        <span className="widget-icon">{meta.icon}</span>
-        <span className="widget-label">{meta.label}</span>
+        <div className="widget-header-meta">
+          <span className="widget-icon">{meta.icon}</span>
+          <span className="widget-label">{meta.label}</span>
+        </div>
+        {editable && !editing && (
+          <button className="btn-edit-icon" onClick={() => setEditing(true)} title="עריכה">
+            ✏️
+          </button>
+        )}
       </div>
 
       {editing ? (
@@ -88,14 +98,7 @@ export default function WidgetCard({ widget, onSaved }: Props) {
           </div>
         </div>
       ) : (
-        <div className="widget-body">
-          <p className="widget-value">{widget.value}</p>
-          {editable && (
-            <button className="btn-edit" onClick={() => setEditing(true)}>
-              ✏️ עריכה
-            </button>
-          )}
-        </div>
+        <p className="widget-value">{widget.value || <span className="widget-empty">—</span>}</p>
       )}
     </div>
   );

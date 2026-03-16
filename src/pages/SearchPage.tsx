@@ -33,7 +33,7 @@ export default function SearchPage() {
   const selectPatient = (p: Patient) => {
     setShowResults(false);
     setQuery('');
-    navigate(`/patient/${p.id}`);
+    navigate(`/patient/${p.id}/confirm`, { state: { patient: p } });
   };
 
   return (
