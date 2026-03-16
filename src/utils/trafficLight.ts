@@ -15,27 +15,27 @@ const WALK_YELLOW = new Set(['זקוק לליווי', 'זקוק לעזרה מכ�
 const WALK_RED    = new Set(['על כיסא גלגלים', 'מרותק למיטה']);
 
 export function getTrafficLight(widgetType: WidgetType, value: string): TrafficLight {
-  if (!value.trim()) return 'neutral';
-
   switch (widgetType) {
     case WidgetType.FoodTexture:
+      if (!value.trim())          return 'neutral'; // not yet assessed
       if (FOOD_GREEN.has(value))  return 'green';
       if (FOOD_YELLOW.has(value)) return 'yellow';
       if (FOOD_RED.has(value))    return 'red';
       return 'neutral';
 
     case WidgetType.WalkingStability:
+      if (!value.trim())          return 'neutral'; // not yet assessed
       if (WALK_GREEN.has(value))  return 'green';
       if (WALK_YELLOW.has(value)) return 'yellow';
       if (WALK_RED.has(value))    return 'red';
       return 'neutral';
 
     case WidgetType.ExceptionalEvents:
-      // Value is a JSON array; colour is managed directly by EventLogCard
+      // Colour managed directly by EventLogCard
       return 'neutral';
 
     default:
-      // Free-text widgets: any content = red (important clinical info present)
-      return 'red';
+      // Free-text: empty = green (no issues noted), any content = red (attention needed)
+      return value.trim() ? 'red' : 'green';
   }
 }
