@@ -5,21 +5,30 @@ import outputs from '../amplify_outputs.json';
 import App from './App';
 import './styles.css';
 
-// The Cognito User Pool is created via raw CDK (bypassing defineAuth) so its IDs
-// are written into amplify_outputs.json under the 'custom' key by backend.addOutput.
-const custom = (outputs as any).custom as { userPoolId?: string; userPoolClientId?: string } | undefined;
+// amplify_outputs.json stores Cognito IDs under 'custom' (raw CDK, not defineAuth).
+// We configure Amplify using ResourcesConfig format (capital Auth, camelCase) so that
+// the 'version' key in outputs does not trigger AmplifyOutputs parsing, which would
+// leave loginWith empty and cause signIn to fail without a network request.
+const custom = (outputs as any).custom as { userPoolId: string; userPoolClientId: string };
+const data = outputs.data;
 
 Amplify.configure({
-  ...outputs,
-  ...(custom?.userPoolId && custom?.userPoolClientId
-    ? {
-        auth: {
-          aws_region: 'us-east-1',
-          user_pool_id: custom.userPoolId,
-          user_pool_client_id: custom.userPoolClientId,
-        },
-      }
-    : {}),
+  API: {
+    GraphQL: {
+      endpoint: data.url,
+      region: data.aws_region,
+      defaultAuthMode: 'apiKey',
+      apiKey: data.api_key,
+      modelIntrospection: data.model_introspection as any,
+    },
+  },
+  Auth: {
+    Cognito: {
+      userPoolId: custom.userPoolId,
+      userPoolClientId: custom.userPoolClientId,
+      loginWith: { username: true },
+    },
+  },
 });
 
 createRoot(document.getElementById('root')!).render(
