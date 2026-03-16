@@ -158,15 +158,15 @@ const WIDGET_TYPES = [
 ];
 
 const DEFAULT_WIDGET_VALUES: Record<string, string> = {
-  food_texture: 'רגיל',
-  walking_stability: 'יציב — ללא צורך בליווי',
-  risk_management: 'ללא סיכונים מיוחדים',
-  guardian_details: 'לא מונה אפוטרופוס',
-  medication_cardex: 'אין תרופות פעילות',
-  sensitivities: 'לא ידועות',
-  medical_diagnoses: 'אין אבחנות',
-  personal_development: 'תוכנית בסיסית',
-  exceptional_events: 'אין אירועים',
+  food_texture: 'רגיל',                    // select — keep actual value
+  walking_stability: 'יציב — ללא צורך בליווי', // select — keep actual value
+  risk_management: '',
+  guardian_details: '',
+  medication_cardex: '',
+  sensitivities: '',
+  medical_diagnoses: '',
+  personal_development: '',
+  exceptional_events: '',
 };
 
 const PERMISSIONS = [

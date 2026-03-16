@@ -114,6 +114,17 @@ export interface AuditLogEntry {
   timestamp: string;
 }
 
+// Text shown in the UI when a free-text widget has no value yet.
+// Empty value = nothing notable — displayed muted, traffic light stays neutral.
+export const WIDGET_EMPTY_LABEL: Partial<Record<WidgetType, string>> = {
+  [WidgetType.RiskManagement]:     'ללא סיכונים מיוחדים',
+  [WidgetType.GuardianDetails]:    'לא מונה אפוטרופוס',
+  [WidgetType.MedicationCardex]:   'אין תרופות פעילות',
+  [WidgetType.Sensitivities]:      'לא ידועות',
+  [WidgetType.MedicalDiagnoses]:   'אין אבחנות',
+  [WidgetType.PersonalDevelopment]:'לא הוגדרה תוכנית',
+};
+
 export const WIDGET_META: Record<WidgetType, { label: string; icon: string }> = {
   [WidgetType.FoodTexture]: { label: 'מרקם מזון', icon: '🍽️' },
   [WidgetType.WalkingStability]: { label: 'יציבות בהליכה', icon: '🚶' },

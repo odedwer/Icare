@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import type { PatientWidget, WidgetConfig } from '../types';
-import { WIDGET_META } from '../types';
+import { WIDGET_META, WIDGET_EMPTY_LABEL } from '../types';
 import { getTrafficLight } from '../utils/trafficLight';
 
 interface Props {
@@ -98,7 +98,11 @@ export default function WidgetCard({ widget, onSaved }: Props) {
           </div>
         </div>
       ) : (
-        <p className="widget-value">{widget.value || <span className="widget-empty">—</span>}</p>
+        <p className="widget-value">
+          {widget.value
+            ? widget.value
+            : <span className="widget-empty">{WIDGET_EMPTY_LABEL[widget.widgetType] ?? '—'}</span>}
+        </p>
       )}
     </div>
   );
