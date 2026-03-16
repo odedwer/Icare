@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { adminUserOps } from '../functions/adminUserOps/resource';
+import { photoOps } from '../functions/photoOps/resource';
 
 const schema = a.schema({
   UserRecord: a
@@ -102,6 +103,17 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  uploadPatientPhoto: a
+    .mutation()
+    .arguments({
+      patientId: a.string().required(),
+      imageBase64: a.string().required(),
+      contentType: a.string().required(),
+    })
+    .returns(a.string().required())
+    .handler(a.handler.function(photoOps))
     .authorization((allow) => [allow.publicApiKey()]),
 });
 

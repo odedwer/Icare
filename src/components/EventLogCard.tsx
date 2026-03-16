@@ -63,7 +63,7 @@ export default function EventLogCard({ widget, onSaved }: Props) {
   };
 
   return (
-    <div className={`widget-card event-log-card tl-${hasEntries ? 'red' : 'neutral'}`}>
+    <div className={`widget-card event-log-card tl-${hasEntries ? 'red' : 'green'}`}>
       <div className="widget-header">
         <div className="widget-header-meta">
           <span className="widget-icon">{meta.icon}</span>

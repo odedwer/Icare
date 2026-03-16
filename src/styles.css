@@ -293,13 +293,53 @@ textarea {
   min-width: 280px;
 }
 
+.confirm-photo-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
 .confirm-photo {
   width: 160px;
   height: 160px;
   border-radius: 50%;
   object-fit: cover;
   border: 4px solid var(--primary);
-  margin-bottom: 4px;
+  display: block;
+}
+
+.btn-photo-upload {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: 2px solid white;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-photo-upload:hover {
+  background: var(--primary-dark);
+}
+
+.confirm-meta {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.upload-error {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin: 4px 0;
 }
 
 .confirm-name {

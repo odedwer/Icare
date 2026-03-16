@@ -1,8 +1,9 @@
 import { defineBackend } from '@aws-amplify/backend';
-import { CfnOutput } from 'aws-cdk-lib';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { UserPool, UserPoolClient, AccountRecovery } from 'aws-cdk-lib/aws-cognito';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
+import { Bucket, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
 import type { IConstruct } from 'constructs';
 import { data } from './data/resource.ts';
 
@@ -33,17 +34,6 @@ const userPoolClient = new UserPoolClient(authStack, 'UserPoolClient', {
     userSrp: true,
   },
   generateSecret: false,
-});
-
-// Write User Pool config into amplify_outputs.json via the 'custom' key.
-// We intentionally avoid backend.addOutput({ auth: ... }) — it triggers Amplify to attach
-// Cognito auth to the AppSync API, causing a duplicate 'awsAppsyncApiId' construct error.
-backend.addOutput({
-  custom: {
-    userPoolId: userPool.userPoolId,
-    userPoolClientId: userPoolClient.userPoolClientId,
-    region: authStack.region,
-  },
 });
 
 // The adminUserOps Lambda lives inside the data construct (referenced via a.handler.function()).
@@ -82,3 +72,30 @@ adminUserOpsLambda.addToRolePolicy(
     resources: [userPool.userPoolArn],
   }),
 );
+
+// S3 bucket for patient photos — public-read via pre-signed policy
+const photoStack = backend.createStack('PhotoStack');
+const photoBucket = new Bucket(photoStack, 'PatientPhotosBucket', {
+  blockPublicAccess: new BlockPublicAccess({
+    blockPublicAcls: false,
+    ignorePublicAcls: false,
+    blockPublicPolicy: false,
+    restrictPublicBuckets: false,
+  }),
+  removalPolicy: RemovalPolicy.RETAIN,
+});
+
+// Grant the photoOps Lambda permission to put objects into the bucket
+const photoOpsLambda = findLambdaInTree(cdkApp, 'photoops');
+photoOpsLambda.addEnvironment('PHOTO_BUCKET_NAME', photoBucket.bucketName);
+photoBucket.grantPut(photoOpsLambda);
+
+// Expose the bucket name so the frontend can construct URLs if needed
+backend.addOutput({
+  custom: {
+    userPoolId: userPool.userPoolId,
+    userPoolClientId: userPoolClient.userPoolClientId,
+    region: authStack.region,
+    photoBucketName: photoBucket.bucketName,
+  },
+});
