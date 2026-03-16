@@ -44,10 +44,8 @@ const cognitoClient = new CognitoIdentityProviderClient({ region });
 // ─── Seed Data ───────────────────────────────────────────────
 
 const USERS = [
-  { name: 'שרה כהן',      username: 'sarah', password: 'Admin1234', role: 'admin' },
-  { name: 'ד"ר דוד לוי',  username: 'david', password: 'Admin1234', role: 'doctor' },
-  { name: 'נועה מזרחי',   username: 'noa',   password: 'Admin1234', role: 'nurse' },
-  { name: 'יוסי בן-ארי',  username: 'yossi', password: 'Admin1234', role: 'caregiver' },
+  { name: 'איציק ביטון', username: 'Itzik', password: 'Biton1961',    role: 'admin' },
+  { name: 'מנהל מערכת',  username: 'admin', password: 'Admin1234!@#', role: 'admin' },
 ];
 
 const PATIENTS = [
