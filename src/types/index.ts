@@ -87,6 +87,23 @@ export interface WidgetPermission {
   rolesAllowedToEdit: string[];
 }
 
+export interface EventLogEntry {
+  text: string;
+  userId: string;
+  userName: string;
+  timestamp: string;
+}
+
+export function parseEventLog(value: string): EventLogEntry[] {
+  if (!value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export interface AuditLogEntry {
   id: string;
   userId: string;

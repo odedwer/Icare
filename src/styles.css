@@ -914,6 +914,78 @@ textarea {
   background: var(--primary-dark);
 }
 
+/* ─── Event Log Card ───────────────────────────────────────── */
+.event-log-card {
+  grid-column: 1 / -1;
+}
+
+.event-log-entries {
+  max-height: 130px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.event-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+}
+
+.event-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.event-text {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.event-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.event-add-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.event-add-row input:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
+}
+
+.btn-add-event {
+  padding: 6px 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-add-event:hover {
+  background: var(--primary-dark);
+}
+
+.btn-add-event:disabled {
+  opacity: 0.5;
+}
+
 /* ─── Widget Select (in WidgetCard) ────────────────────────── */
 .widget-select {
   width: 100%;

@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import type { Patient, PatientWidget } from '../types';
-import { Role, WIDGET_META, ROLE_LABELS } from '../types';
+import { Role, WIDGET_META, ROLE_LABELS, WidgetType } from '../types';
 import WidgetCard from '../components/WidgetCard';
+import EventLogCard from '../components/EventLogCard';
 
 export default function PatientPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -67,9 +68,13 @@ export default function PatientPage() {
       </div>
 
       <div className="widget-grid">
-        {sortedWidgets.map((w) => (
-          <WidgetCard key={w.id} widget={w} onSaved={handleWidgetSaved} />
-        ))}
+        {sortedWidgets.map((w) =>
+          w.widgetType === WidgetType.ExceptionalEvents ? (
+            <EventLogCard key={w.id} widget={w} onSaved={handleWidgetSaved} />
+          ) : (
+            <WidgetCard key={w.id} widget={w} onSaved={handleWidgetSaved} />
+          ),
+        )}
       </div>
     </div>
   );
