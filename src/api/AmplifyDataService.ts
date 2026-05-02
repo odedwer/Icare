@@ -125,7 +125,8 @@ export class AmplifyDataService implements DataService {
   async login(username: string, password: string): Promise<User | null> {
     try {
       await signIn({ username, password });
-    } catch {
+    } catch (error) {
+      console.error('[Login] signIn failed:', error);
       return null;
     }
     return this.getCurrentSession();

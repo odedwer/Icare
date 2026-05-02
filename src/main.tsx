@@ -12,7 +12,7 @@ import './styles.css';
 const custom = (outputs as any).custom as { userPoolId: string; userPoolClientId: string };
 const data = outputs.data;
 
-Amplify.configure({
+const config = {
   API: {
     GraphQL: {
       endpoint: data.url,
@@ -31,7 +31,11 @@ Amplify.configure({
       },
     },
   },
-});
+};
+
+console.log('[Amplify] Configuring with:', config);
+Amplify.configure(config);
+console.log('[Amplify] Configured successfully');
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
