@@ -13,10 +13,7 @@
     "generate:outputs": "ampx generate outputs"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1041.0",
-    "@aws-sdk/lib-dynamodb": "^3.1041.0",
     "aws-amplify": "^6.16.3",
-    "aws-jwt-verify": "^5.1.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1"
@@ -25,13 +22,16 @@
     "@aws-amplify/backend": "^1.21.1",
     "@aws-amplify/backend-cli": "^1.8.2",
     "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
+    "@aws-sdk/client-dynamodb": "^3.1041.0",
     "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.1041.0",
     "@types/aws-lambda": "^8.10.0",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "aws-cdk-lib": "^2.243.0",
+    "aws-jwt-verify": "^5.1.1",
     "constructs": "^10.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.5.3",
