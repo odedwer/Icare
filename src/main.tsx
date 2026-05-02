@@ -24,7 +24,6 @@ Amplify.configure({
   },
   Auth: {
     Cognito: {
-      region: data.aws_region,
       userPoolId: custom.userPoolId,
       userPoolClientId: custom.userPoolClientId,
       loginWith: {
