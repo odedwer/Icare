@@ -4,13 +4,20 @@ import { UserPool, UserPoolClient, AccountRecovery } from 'aws-cdk-lib/aws-cogni
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
+import {
+  Distribution,
+  ViewerProtocolPolicy,
+  AllowedMethods,
+  CachePolicy,
+} from 'aws-cdk-lib/aws-cloudfront';
+import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import type { IConstruct } from 'constructs';
 import { data } from './data/resource.ts';
 
 const backend = defineBackend({ data });
 
-// Create Cognito User Pool via CDK directly — pure username/password, no email required.
-// We intentionally bypass defineAuth, which enforces email or phone as a required attribute.
+// ─── Auth — Cognito User Pool (username-only, no email/phone required) ────────
+
 const authStack = backend.createStack('AuthStack');
 
 const userPool = new UserPool(authStack, 'UserPool', {
@@ -36,9 +43,8 @@ const userPoolClient = new UserPoolClient(authStack, 'UserPoolClient', {
   generateSecret: false,
 });
 
-// The adminUserOps Lambda lives inside the data construct (referenced via a.handler.function()).
-// Amplify doesn't expose it through resources.functions when auth is not in defineBackend,
-// so we locate it by traversing the CDK construct tree.
+// ─── Lambda finder helper ──────────────────────────────────────────────────────
+
 function findLambdaInTree(scope: IConstruct, nameFragment: string): LambdaFunction {
   const match = scope.node
     .findAll()
@@ -53,13 +59,27 @@ function findLambdaInTree(scope: IConstruct, nameFragment: string): LambdaFuncti
       .findAll()
       .filter((n) => n instanceof LambdaFunction)
       .map((n) => n.node.path);
-    throw new Error(`Lambda matching '${nameFragment}' not found.\nAvailable Lambdas:\n${available.join('\n')}`);
+    throw new Error(
+      `Lambda matching '${nameFragment}' not found.\nAvailable Lambdas:\n${available.join('\n')}`,
+    );
   }
   return match;
 }
 
-// Search from the CDK app root — the Lambda lives in its own stack, not the data stack.
 const cdkApp = backend.data.resources.graphqlApi.stack.node.root;
+
+// ─── AppSync Authorizer Lambda ─────────────────────────────────────────────────
+
+const appSyncAuthorizerLambda = findLambdaInTree(cdkApp, 'appsyncauthorizer');
+appSyncAuthorizerLambda.addEnvironment('USER_POOL_ID', userPool.userPoolId);
+appSyncAuthorizerLambda.addEnvironment('USER_POOL_CLIENT_ID', userPoolClient.userPoolClientId);
+
+const userRecordTable = backend.data.resources.tables['UserRecord'];
+appSyncAuthorizerLambda.addEnvironment('USER_RECORD_TABLE', userRecordTable.tableName);
+userRecordTable.grantReadData(appSyncAuthorizerLambda);
+
+// ─── Admin User Ops Lambda ─────────────────────────────────────────────────────
+
 const adminUserOpsLambda = findLambdaInTree(cdkApp, 'adminuserops');
 adminUserOpsLambda.addEnvironment('USER_POOL_ID', userPool.userPoolId);
 adminUserOpsLambda.addToRolePolicy(
@@ -73,29 +93,56 @@ adminUserOpsLambda.addToRolePolicy(
   }),
 );
 
-// S3 bucket for patient photos — public-read via pre-signed policy
+// ─── Update Widget Ops Lambda ──────────────────────────────────────────────────
+
+const updateWidgetOpsLambda = findLambdaInTree(cdkApp, 'updatewidgetops');
+
+const widgetTable = backend.data.resources.tables['PatientWidget'];
+const permissionTable = backend.data.resources.tables['WidgetPermission'];
+const auditTable = backend.data.resources.tables['AuditLogEntry'];
+
+updateWidgetOpsLambda.addEnvironment('WIDGET_TABLE', widgetTable.tableName);
+updateWidgetOpsLambda.addEnvironment('PERMISSION_TABLE', permissionTable.tableName);
+updateWidgetOpsLambda.addEnvironment('AUDIT_TABLE', auditTable.tableName);
+
+widgetTable.grantReadWriteData(updateWidgetOpsLambda);
+permissionTable.grantReadData(updateWidgetOpsLambda);
+auditTable.grantWriteData(updateWidgetOpsLambda);
+
+// ─── S3 + CloudFront for patient photos ───────────────────────────────────────
+
 const photoStack = backend.createStack('PhotoStack');
+
 const photoBucket = new Bucket(photoStack, 'PatientPhotosBucket', {
-  blockPublicAccess: new BlockPublicAccess({
-    blockPublicAcls: false,
-    ignorePublicAcls: false,
-    blockPublicPolicy: false,
-    restrictPublicBuckets: false,
-  }),
+  // Fully private — access only via CloudFront OAC
+  blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
   removalPolicy: RemovalPolicy.RETAIN,
+});
+
+const photoDistribution = new Distribution(photoStack, 'PhotoDistribution', {
+  defaultBehavior: {
+    // S3BucketOrigin.withOriginAccessControl creates the OAC and wires the bucket policy automatically
+    origin: S3BucketOrigin.withOriginAccessControl(photoBucket),
+    viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
+    cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+  },
 });
 
 // Grant the photoOps Lambda permission to put objects into the bucket
 const photoOpsLambda = findLambdaInTree(cdkApp, 'photoops');
 photoOpsLambda.addEnvironment('PHOTO_BUCKET_NAME', photoBucket.bucketName);
+photoOpsLambda.addEnvironment('CLOUDFRONT_DOMAIN', photoDistribution.domainName);
 photoBucket.grantPut(photoOpsLambda);
 
-// Expose the bucket name so the frontend can construct URLs if needed
+// ─── Outputs ───────────────────────────────────────────────────────────────────
+
 backend.addOutput({
   custom: {
     userPoolId: userPool.userPoolId,
     userPoolClientId: userPoolClient.userPoolClientId,
     region: authStack.region,
     photoBucketName: photoBucket.bucketName,
+    cloudfrontDomain: photoDistribution.domainName,
   },
 });

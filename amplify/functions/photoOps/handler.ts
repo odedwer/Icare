@@ -3,12 +3,18 @@ import type { AppSyncResolverHandler } from 'aws-lambda';
 
 const s3 = new S3Client({});
 const BUCKET = process.env.PHOTO_BUCKET_NAME!;
-const REGION = process.env.AWS_REGION ?? 'us-east-1';
+const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN!;
 
 export const handler: AppSyncResolverHandler<
   { patientId: string; imageBase64: string; contentType: string },
   string
 > = async (event) => {
+  // Any authenticated user may upload a photo
+  const identity = event.identity as { resolverContext?: { userId?: string } } | null;
+  if (!identity?.resolverContext?.userId) {
+    throw new Error('Unauthorized');
+  }
+
   const { patientId, imageBase64, contentType } = event.arguments as {
     patientId: string;
     imageBase64: string;
@@ -28,5 +34,6 @@ export const handler: AppSyncResolverHandler<
     }),
   );
 
-  return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+  // Return CloudFront URL — S3 bucket is now private
+  return `https://${CLOUDFRONT_DOMAIN}/${key}`;
 };
