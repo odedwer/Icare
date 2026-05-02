@@ -1,6 +1,8 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
-import { adminUserOps } from '../functions/adminUserOps/resource.ts';
-import { photoOps } from '../functions/photoOps/resource.ts';
+import { adminUserOps } from '../functions/adminUserOps/resource';
+import { photoOps } from '../functions/photoOps/resource';
+import { appSyncAuthorizer } from '../functions/appSyncAuthorizer/resource';
+import { updateWidgetOps } from '../functions/updateWidgetOps/resource';
 
 const schema = a.schema({
   UserRecord: a
@@ -11,7 +13,7 @@ const schema = a.schema({
       role: a.string().required(),
     })
     .secondaryIndexes((index) => [index('username'), index('cognitoId')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   Patient: a
     .model({
@@ -23,7 +25,7 @@ const schema = a.schema({
       gender: a.string().required(),
     })
     .secondaryIndexes((index) => [index('idNumber')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   PatientWidget: a
     .model({
@@ -34,7 +36,9 @@ const schema = a.schema({
       updatedBy: a.string().required(),
     })
     .secondaryIndexes((index) => [index('patientId')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    // update is disabled here — use the custom updateWidget mutation which enforces WidgetPermission
+    // Valid operations: create, read, delete. 'read' covers both get and list.
+    .authorization((allow) => [allow.custom().to(['create', 'read', 'delete'])]),
 
   WidgetPermission: a
     .model({
@@ -42,7 +46,7 @@ const schema = a.schema({
       rolesAllowedToEdit: a.string().array().required(),
     })
     .secondaryIndexes((index) => [index('widgetType')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   WidgetConfig: a
     .model({
@@ -51,7 +55,7 @@ const schema = a.schema({
       options: a.string().array().required(),
     })
     .secondaryIndexes((index) => [index('widgetType')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   AuditLogEntry: a
     .model({
@@ -63,8 +67,8 @@ const schema = a.schema({
       timestamp: a.string().required(),
     })
     .secondaryIndexes((index) => [index('patientId')])
-    // Audit log is append-only: deny update/delete to prevent history tampering
-    .authorization((allow) => [allow.publicApiKey().to(['create', 'read'])]),
+    // Append-only: deny mutations other than create and reads
+    .authorization((allow) => [allow.custom().to(['create', 'read'])]),
 
   RoleDefinition: a
     .model({
@@ -73,7 +77,19 @@ const schema = a.schema({
       isBuiltIn: a.boolean().required(),
     })
     .secondaryIndexes((index) => [index('roleId')])
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
+
+  // Custom mutation — replaces auto-generated PatientWidget.update.
+  // The Lambda handler enforces WidgetPermission server-side before writing.
+  updateWidget: a
+    .mutation()
+    .arguments({
+      widgetId: a.string().required(),
+      newValue: a.string().required(),
+    })
+    .returns(a.ref('PatientWidget'))
+    .handler(a.handler.function(updateWidgetOps))
+    .authorization((allow) => [allow.custom()]),
 
   userAdminCreate: a
     .mutation()
@@ -84,7 +100,7 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   userAdminSetPassword: a
     .mutation()
@@ -94,7 +110,7 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   userAdminDelete: a
     .mutation()
@@ -103,7 +119,7 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(adminUserOps))
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 
   uploadPatientPhoto: a
     .mutation()
@@ -114,22 +130,18 @@ const schema = a.schema({
     })
     .returns(a.string().required())
     .handler(a.handler.function(photoOps))
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.custom()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
 
-// Authorization note: API key auth is used here intentionally. Switching to
-// allow.authenticated() (Cognito/IAM) triggers an Amplify Gen2 internal
-// MultipleSingletonResourcesError when the User Pool is created via raw CDK
-// (required because defineAuth enforces email/phone, which this app does not use).
-// Mitigations: 30-day key rotation, key is not a deployment secret (Amplify
-// generates it per environment), and Cognito still protects all write operations
-// through the admin Lambda which validates the caller's session server-side.
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'apiKey',
-    apiKeyAuthorizationMode: { expiresInDays: 365 },
+    defaultAuthorizationMode: 'lambda',
+    lambdaAuthorizationMode: {
+      function: appSyncAuthorizer,
+      timeToLiveInSeconds: 300,
+    },
   },
 });
