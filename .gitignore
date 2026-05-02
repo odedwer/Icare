@@ -3,6 +3,7 @@
 /dist
 /.amplify
 /.env.local
+/amplify_outputs.json
 
 /node_modules
 npm-debug.log*
