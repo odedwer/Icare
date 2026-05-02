@@ -149,10 +149,14 @@ export class AmplifyDataService implements DataService {
   async getCurrentSession(): Promise<User | null> {
     try {
       const { userId } = await getCurrentUser();
-      const { data } = await this.client.models.UserRecord.listUserRecordByCognitoId({ cognitoId: userId });
+      const { data } = await this.client.models.UserRecord.listUserRecordByCognitoId(
+        { cognitoId: userId },
+        { authMode: 'apiKey' },
+      );
       const record = data[0];
       return record ? toUser(record) : null;
-    } catch {
+    } catch (error) {
+      console.error('[getCurrentSession] failed:', error);
       return null;
     }
   }
