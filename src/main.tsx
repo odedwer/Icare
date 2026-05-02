@@ -12,12 +12,13 @@ import './styles.css';
 const custom = (outputs as any).custom as { userPoolId: string; userPoolClientId: string };
 const data = outputs.data;
 
-const config = {
+console.log('[Amplify] userPoolId:', custom.userPoolId, 'clientId:', custom.userPoolClientId);
+Amplify.configure({
   API: {
     GraphQL: {
       endpoint: data.url,
       region: data.aws_region,
-      defaultAuthMode: 'apiKey',
+      defaultAuthMode: 'apiKey' as const,
       apiKey: data.api_key,
       modelIntrospection: data.model_introspection as any,
     },
@@ -31,10 +32,7 @@ const config = {
       },
     },
   },
-};
-
-console.log('[Amplify] Configuring with:', config);
-Amplify.configure(config);
+});
 console.log('[Amplify] Configured successfully');
 
 createRoot(document.getElementById('root')!).render(
