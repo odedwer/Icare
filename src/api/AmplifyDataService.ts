@@ -116,7 +116,10 @@ export class AmplifyDataService implements DataService {
   // module scope in App.tsx, which is evaluated before Amplify.configure() in main.tsx.
   private _client: ReturnType<typeof generateClient<Schema>> | null = null;
   private get client(): ReturnType<typeof generateClient<Schema>> {
-    if (!this._client) this._client = generateClient<Schema>();
+    // Force apiKey auth so that a signed-in Cognito session doesn't override
+    // the auth mode. AppSync is configured for API_KEY / AWS_IAM only — it
+    // does not accept Cognito User Pool tokens directly.
+    if (!this._client) this._client = generateClient<Schema>({ authMode: 'apiKey' });
     return this._client;
   }
 
@@ -125,9 +128,20 @@ export class AmplifyDataService implements DataService {
   async login(username: string, password: string): Promise<User | null> {
     try {
       await signIn({ username, password });
-    } catch (error) {
-      console.error('[Login] signIn failed:', error);
-      return null;
+    } catch (error: any) {
+      if (error?.name === 'UserAlreadyAuthenticatedException') {
+        // Session already exists — sign out and retry so we use the provided credentials
+        await signOut();
+        try {
+          await signIn({ username, password });
+        } catch (retryError) {
+          console.error('[Login] signIn retry failed:', retryError);
+          return null;
+        }
+      } else {
+        console.error('[Login] signIn failed:', error);
+        return null;
+      }
     }
     return this.getCurrentSession();
   }
