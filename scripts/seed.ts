@@ -44,10 +44,8 @@ const cognitoClient = new CognitoIdentityProviderClient({ region });
 // ─── Seed Data ───────────────────────────────────────────────
 
 const USERS = [
-  { name: 'שרה כהן',      username: 'sarah', password: 'Admin1234', role: 'admin' },
-  { name: 'ד"ר דוד לוי',  username: 'david', password: 'Admin1234', role: 'doctor' },
-  { name: 'נועה מזרחי',   username: 'noa',   password: 'Admin1234', role: 'nurse' },
-  { name: 'יוסי בן-ארי',  username: 'yossi', password: 'Admin1234', role: 'caregiver' },
+  { name: 'איציק ביטון', username: 'Itzik', password: 'Biton1961',    role: 'admin' },
+  { name: 'מנהל מערכת',  username: 'admin', password: 'Admin1234!@#', role: 'admin' },
 ];
 
 const PATIENTS = [
@@ -158,15 +156,15 @@ const WIDGET_TYPES = [
 ];
 
 const DEFAULT_WIDGET_VALUES: Record<string, string> = {
-  food_texture: 'רגיל',
-  walking_stability: 'יציב — ללא צורך בליווי',
-  risk_management: 'ללא סיכונים מיוחדים',
-  guardian_details: 'לא מונה אפוטרופוס',
-  medication_cardex: 'אין תרופות פעילות',
-  sensitivities: 'לא ידועות',
-  medical_diagnoses: 'אין אבחנות',
-  personal_development: 'תוכנית בסיסית',
-  exceptional_events: 'אין אירועים',
+  food_texture: 'רגיל',                    // select — keep actual value
+  walking_stability: 'יציב — ללא צורך בליווי', // select — keep actual value
+  risk_management: '',
+  guardian_details: '',
+  medication_cardex: '',
+  sensitivities: '',
+  medical_diagnoses: '',
+  personal_development: '',
+  exceptional_events: '',
 };
 
 const PERMISSIONS = [

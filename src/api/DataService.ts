@@ -58,6 +58,9 @@ export interface DataService {
   updateUser(id: string, updates: Partial<CreateUserInput>): Promise<User>;
   deleteUser(id: string): Promise<void>;
 
+  // Photos
+  uploadPatientPhoto(patientId: string, file: File): Promise<string>;
+
   // Admin — Patients
   getAllPatients(): Promise<Patient[]>;
   createPatient(input: CreatePatientInput): Promise<Patient>;

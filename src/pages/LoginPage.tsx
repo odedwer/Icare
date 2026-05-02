@@ -54,9 +54,6 @@ export default function LoginPage() {
           {submitting ? 'מתחבר…' : 'התחברות'}
         </button>
 
-        <p className="login-hint">
-          הדגמה: השתמשו ב-<strong>sarah</strong>, <strong>david</strong>, <strong>noa</strong>, או <strong>yossi</strong> עם סיסמה <strong>1234</strong>
-        </p>
       </form>
     </div>
   );

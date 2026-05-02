@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import type { Patient, PatientWidget } from '../types';
-import { Role, WIDGET_META, ROLE_LABELS } from '../types';
+import { Role, WIDGET_META, ROLE_LABELS, WidgetType } from '../types';
 import WidgetCard from '../components/WidgetCard';
+import EventLogCard from '../components/EventLogCard';
 
 export default function PatientPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -36,21 +37,17 @@ export default function PatientPage() {
   if (loading) return <div className="loading">טוען…</div>;
   if (!patient) return <div className="loading">דייר לא נמצא</div>;
 
-  const age = new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear();
-
   // Sort widgets by the WidgetType enum order
-  const orderedTypes = Object.values(WIDGET_META);
+  const orderedTypes = Object.keys(WIDGET_META);
   const sortedWidgets = [...widgets].sort(
-    (a, b) =>
-      orderedTypes.findIndex((_, i) => Object.keys(WIDGET_META)[i] === a.widgetType) -
-      orderedTypes.findIndex((_, i) => Object.keys(WIDGET_META)[i] === b.widgetType),
+    (a, b) => orderedTypes.indexOf(a.widgetType) - orderedTypes.indexOf(b.widgetType),
   );
 
   return (
     <div className="patient-page">
       <header className="app-header">
         <div className="header-left">
-          <button className="btn-back" onClick={() => navigate('/')}>חזרה →</button>
+          <button className="btn-back" onClick={() => navigate(`/patient/${patient.id}/confirm`)}>חזרה ←</button>
           <h1>🏥 ICare</h1>
         </div>
         <div className="header-user">
@@ -62,18 +59,22 @@ export default function PatientPage() {
         </div>
       </header>
 
-      <div className="patient-header">
-        <img src={patient.photoUrl} alt={patient.fullName} className="patient-photo" />
-        <div className="patient-info">
-          <h2>{patient.fullName}</h2>
-          <p>ת.ז: {patient.idNumber} · קבוצה: {patient.group} · {patient.gender === 'male' ? 'זכר' : 'נקבה'} · גיל {age}</p>
-        </div>
+      <div className="patient-title-bar">
+        <strong>{patient.fullName}</strong>
+        <span className="patient-title-sep">·</span>
+        <span>ת.ז: {patient.idNumber}</span>
+        <span className="patient-title-sep">·</span>
+        <span>קבוצה: {patient.group}</span>
       </div>
 
       <div className="widget-grid">
-        {sortedWidgets.map((w) => (
-          <WidgetCard key={w.id} widget={w} onSaved={handleWidgetSaved} />
-        ))}
+        {sortedWidgets.map((w) =>
+          w.widgetType === WidgetType.ExceptionalEvents ? (
+            <EventLogCard key={w.id} widget={w} onSaved={handleWidgetSaved} />
+          ) : (
+            <WidgetCard key={w.id} widget={w} onSaved={handleWidgetSaved} />
+          ),
+        )}
       </div>
     </div>
   );

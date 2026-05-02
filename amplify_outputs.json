@@ -762,6 +762,32 @@
               "isRequired": true
             }
           }
+        },
+        "uploadPatientPhoto": {
+          "name": "uploadPatientPhoto",
+          "isArray": false,
+          "type": "String",
+          "isRequired": true,
+          "arguments": {
+            "patientId": {
+              "name": "patientId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "imageBase64": {
+              "name": "imageBase64",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "contentType": {
+              "name": "contentType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
         }
       }
     }
@@ -770,6 +796,7 @@
   "custom": {
     "userPoolId": "us-east-1_2Jc2hERVx",
     "userPoolClientId": "6j4gr9ig52h1hm1ln4482jmuv2",
-    "region": "us-east-1"
+    "region": "us-east-1",
+    "photoBucketName": ""
   }
 }

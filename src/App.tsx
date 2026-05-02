@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import LoginPage from './pages/LoginPage';
 import SearchPage from './pages/SearchPage';
+import ConfirmPage from './pages/ConfirmPage';
 import PatientPage from './pages/PatientPage';
 import AdminPage from './pages/AdminPage';
 
@@ -23,6 +24,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patient/:patientId/confirm"
+              element={
+                <ProtectedRoute>
+                  <ConfirmPage />
                 </ProtectedRoute>
               }
             />

@@ -51,35 +51,35 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 6px 16px;
   background: var(--primary);
   color: white;
 }
 
 .app-header h1 {
-  font-size: 1.3rem;
+  font-size: 1rem;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .header-user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
+  gap: 10px;
+  font-size: 0.82rem;
 }
 
 .btn-small {
-  padding: 6px 14px;
+  padding: 4px 10px;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 6px;
   background: transparent;
   color: white;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .btn-small:hover {
@@ -87,11 +87,11 @@ textarea {
 }
 
 .btn-back {
-  padding: 6px 12px;
+  padding: 4px 10px;
   border: none;
   background: transparent;
   color: white;
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 
 .btn-back:hover {
@@ -266,57 +266,166 @@ textarea {
   text-align: center;
 }
 
+/* ─── Confirm Page ─────────────────────────────────────────── */
+.confirm-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.confirm-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirm-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+}
+
+.confirm-photo-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.confirm-photo {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--primary);
+  display: block;
+}
+
+.btn-photo-upload {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: 2px solid white;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-photo-upload:hover {
+  background: var(--primary-dark);
+}
+
+.confirm-meta {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.upload-error {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin: 4px 0;
+}
+
+.confirm-name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.confirm-id {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.btn-confirm {
+  margin-top: 12px;
+  padding: 14px 48px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.btn-confirm:hover {
+  background: var(--primary-dark);
+}
+
+.btn-back-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-decoration: underline;
+  padding: 4px;
+}
+
+.btn-back-link:hover {
+  color: var(--text);
+}
+
 /* ─── Patient Page ─────────────────────────────────────────── */
 .patient-page {
   min-height: 100vh;
-  padding-bottom: 40px;
+  display: flex;
+  flex-direction: column;
 }
 
-.patient-header {
+.patient-title-bar {
   display: flex;
   align-items: center;
-  gap: 20px;
-  max-width: 1000px;
-  margin: 24px auto;
-  padding: 20px 24px;
+  gap: 8px;
+  padding: 6px 20px;
   background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
 }
 
-.patient-photo {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--primary);
+.patient-title-bar strong {
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
-.patient-info h2 {
-  font-size: 1.5rem;
-}
-
-.patient-info p {
-  color: var(--text-muted);
+.patient-title-sep {
+  color: var(--border);
 }
 
 /* ─── Widget Grid ──────────────────────────────────────────── */
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 0 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px 16px;
+  flex: 1;
 }
 
+/* ─── Widget Card ──────────────────────────────────────────── */
 .widget-card {
   background: var(--card-bg);
-  border-radius: var(--radius);
+  border-radius: 10px;
   box-shadow: var(--shadow);
-  padding: 16px 20px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
+  gap: 6px;
   transition: box-shadow 0.15s;
 }
 
@@ -324,49 +433,85 @@ textarea {
   box-shadow: var(--shadow-lg);
 }
 
+/* Traffic light backgrounds */
+.tl-green  { background: #dcfce7; }
+.tl-yellow { background: #fef9c3; }
+.tl-red    { background: #fee2e2; }
+.tl-neutral { background: var(--card-bg); }
+
 .widget-editing {
   outline: 2px solid var(--primary);
+  background: var(--card-bg) !important;
 }
 
 .widget-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  justify-content: space-between;
+}
+
+.widget-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .widget-icon {
-  font-size: 1.5rem;
+  font-size: 1rem;
 }
 
 .widget-label {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+}
+
+.btn-edit-icon {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.5;
+  line-height: 1;
+}
+
+.btn-edit-icon:hover {
+  opacity: 1;
+  background: rgba(0,0,0,0.06);
 }
 
 .widget-body {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
 .widget-value {
-  flex: 1;
-  font-size: 1.05rem;
-  margin-bottom: 10px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.widget-empty {
+  color: var(--text-muted);
 }
 
 .widget-body textarea {
   width: 100%;
-  padding: 10px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
   resize: vertical;
-  font-size: 1rem;
-  margin-bottom: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
 }
 
 .widget-body textarea:focus {
@@ -376,16 +521,16 @@ textarea {
 
 .widget-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btn-edit {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: white;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .btn-edit:hover {
@@ -440,19 +585,21 @@ textarea {
 }
 
 /* ─── Responsive ───────────────────────────────────────────── */
-@media (max-width: 600px) {
+@media (max-width: 800px) {
+  .widget-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
   .widget-grid {
     grid-template-columns: 1fr;
   }
 
-  .patient-header {
-    flex-direction: column;
-    text-align: center;
-  }
-
   .app-header {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    padding: 6px 12px;
   }
 
   .admin-tabs {
@@ -461,6 +608,11 @@ textarea {
 
   .permissions-table-wrapper {
     overflow-x: auto;
+  }
+
+  .patient-title-bar {
+    flex-wrap: wrap;
+    font-size: 0.82rem;
   }
 }
 
@@ -800,6 +952,78 @@ textarea {
 
 .btn-add-small:hover {
   background: var(--primary-dark);
+}
+
+/* ─── Event Log Card ───────────────────────────────────────── */
+.event-log-card {
+  grid-column: 1 / -1;
+}
+
+.event-log-entries {
+  max-height: 130px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.event-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+}
+
+.event-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.event-text {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.event-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.event-add-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.event-add-row input:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
+}
+
+.btn-add-event {
+  padding: 6px 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-add-event:hover {
+  background: var(--primary-dark);
+}
+
+.btn-add-event:disabled {
+  opacity: 0.5;
 }
 
 /* ─── Widget Select (in WidgetCard) ────────────────────────── */

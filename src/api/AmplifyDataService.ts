@@ -318,6 +318,32 @@ export class AmplifyDataService implements DataService {
     await this.client.models.UserRecord.delete({ id });
   }
 
+  // ─── Photos ────────────────────────────────────────────────
+
+  async uploadPatientPhoto(patientId: string, file: File): Promise<string> {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const { data: url, errors } = await this.client.mutations.uploadPatientPhoto({
+      patientId,
+      imageBase64: base64,
+      contentType: file.type || 'image/jpeg',
+    });
+    if (errors && errors.length > 0) throw new Error(errors[0].message);
+    if (!url) throw new Error('Failed to upload photo');
+
+    await this.client.models.Patient.update({ id: patientId, photoUrl: url });
+
+    return url;
+  }
+
   // ─── Admin — Patients ──────────────────────────────────────
 
   async getAllPatients(): Promise<Patient[]> {

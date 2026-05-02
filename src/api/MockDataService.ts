@@ -416,4 +416,11 @@ export class MockDataService implements DataService {
     this.widgetConfigs[idx] = { widgetType, inputType, options: [...options] };
     return { ...this.widgetConfigs[idx], options: [...options] };
   }
+
+  async uploadPatientPhoto(patientId: string, file: File): Promise<string> {
+    const url = URL.createObjectURL(file);
+    const idx = this.patients.findIndex((p) => p.id === patientId);
+    if (idx !== -1) this.patients[idx] = { ...this.patients[idx], photoUrl: url };
+    return url;
+  }
 }
