@@ -1,6 +1,6 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
-import { adminUserOps } from '../functions/adminUserOps/resource';
-import { photoOps } from '../functions/photoOps/resource';
+import { adminUserOps } from '../functions/adminUserOps/resource.ts';
+import { photoOps } from '../functions/photoOps/resource.ts';
 
 const schema = a.schema({
   UserRecord: a
