@@ -6,6 +6,14 @@ const USER_POOL_ID = process.env.USER_POOL_ID!;
 const USER_POOL_CLIENT_ID = process.env.USER_POOL_CLIENT_ID!;
 const USER_RECORD_TABLE = process.env.USER_RECORD_TABLE!;
 
+// Fail fast at cold start if env vars are missing rather than producing cryptic auth errors
+for (const [key, val] of Object.entries({ USER_POOL_ID, USER_POOL_CLIENT_ID, USER_RECORD_TABLE })) {
+  if (!val) throw new Error(`Missing required environment variable: ${key}`);
+}
+
+// tokenUse: 'id' because the frontend sends the Cognito ID token as the Bearer token.
+// The ID token carries the 'sub' claim used to look up the UserRecord.
+// Access tokens do not contain this claim by default.
 const verifier = CognitoJwtVerifier.create({
   userPoolId: USER_POOL_ID,
   tokenUse: 'id',
@@ -39,29 +47,43 @@ export const handler = async (event: AuthorizerEvent): Promise<AuthorizerResult>
   try {
     const payload = await verifier.verify(token);
     cognitoId = payload.sub;
-  } catch {
+  } catch (err) {
+    console.error('[appSyncAuthorizer] JWT verification failed:', (err as Error).message);
     return { isAuthorized: false };
   }
 
-  // UserRecord table has ~10 items — scan is acceptable and avoids GSI naming assumptions
-  const result = await dynamo.send(
-    new ScanCommand({
-      TableName: USER_RECORD_TABLE,
-      FilterExpression: 'cognitoId = :cid',
-      ExpressionAttributeValues: { ':cid': cognitoId },
-      Limit: 1,
-    }),
-  );
+  // Full scan — UserRecord table has ~10 items; no Limit to avoid the DynamoDB
+  // behaviour where Limit applies before FilterExpression (could miss valid users)
+  let result: Awaited<ReturnType<typeof dynamo.send<ScanCommand>>>;
+  try {
+    result = await dynamo.send(
+      new ScanCommand({
+        TableName: USER_RECORD_TABLE,
+        FilterExpression: 'cognitoId = :cid',
+        ExpressionAttributeValues: { ':cid': cognitoId },
+      }),
+    );
+  } catch (err) {
+    console.error('[appSyncAuthorizer] DynamoDB scan failed:', (err as Error).message);
+    return { isAuthorized: false };
+  }
 
   const record = result.Items?.[0];
-  if (!record) return { isAuthorized: false };
+  if (!record) {
+    console.error('[appSyncAuthorizer] No UserRecord found for cognitoId:', cognitoId);
+    return { isAuthorized: false };
+  }
+
+  const userId = record['id'];
+  const role = record['role'];
+  if (typeof userId !== 'string' || typeof role !== 'string') {
+    console.error('[appSyncAuthorizer] UserRecord missing id or role for cognitoId:', cognitoId);
+    return { isAuthorized: false };
+  }
 
   return {
     isAuthorized: true,
-    resolverContext: {
-      userId: record['id'] as string,
-      role: record['role'] as string,
-    },
+    resolverContext: { userId, role },
     ttlOverride: 300,
   };
 };
