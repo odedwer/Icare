@@ -1,10 +1,15 @@
 version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci --legacy-peer-deps
+        - npx @aws-amplify/backend-cli pipeline-deploy --app-id $AWS_APP_ID --branch $AWS_BRANCH
 frontend:
   phases:
     preBuild:
       commands:
         - npm ci --legacy-peer-deps
-        - npx ampx generate outputs --app-id $AWS_APP_ID --branch $AWS_BRANCH
     build:
       commands:
         - npm run build
