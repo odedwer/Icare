@@ -10,7 +10,7 @@ import './styles.css';
 // the 'version' key in outputs does not trigger AmplifyOutputs parsing, which would
 // leave loginWith empty and cause signIn to fail without a network request.
 const custom = (outputs as any).custom as { userPoolId: string; userPoolClientId: string };
-const data = outputs.data;
+const data = (outputs as any).data;
 
 console.log('[Amplify] userPoolId:', custom.userPoolId, 'clientId:', custom.userPoolClientId);
 Amplify.configure({
