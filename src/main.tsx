@@ -6,23 +6,14 @@ import App from './App.tsx';
 import './styles.css';
 
 // amplify_outputs.json stores Cognito IDs under 'custom' (raw CDK, not defineAuth).
-// We configure Amplify using ResourcesConfig format (capital Auth, camelCase) so that
-// the 'version' key in outputs does not trigger AmplifyOutputs parsing, which would
-// leave loginWith empty and cause signIn to fail without a network request.
+// Pass outputs directly so Amplify handles the data/AppSync section natively (including
+// Lambda auth mode wiring). Auth is supplemented manually from custom since defineAuth
+// was not used.
 const custom = (outputs as any).custom as { userPoolId: string; userPoolClientId: string };
-const data = (outputs as any).data;
 
 console.log('[Amplify] userPoolId:', custom.userPoolId, 'clientId:', custom.userPoolClientId);
 Amplify.configure({
-  API: {
-    GraphQL: {
-      endpoint: data.url,
-      region: data.aws_region,
-      defaultAuthMode: 'apiKey' as const,
-      apiKey: data.api_key,
-      modelIntrospection: data.model_introspection as any,
-    },
-  },
+  ...outputs,
   Auth: {
     Cognito: {
       userPoolId: custom.userPoolId,
