@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Role } from '../types';
+import { useAuth } from '../context/AuthContext.tsx';
+import { Role } from '../types/index.ts';
 import type { ReactNode } from 'react';
 
 export default function AdminRoute({ children }: { children: ReactNode }) {

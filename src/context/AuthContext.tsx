@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { User, WidgetType, WidgetPermission } from '../types';
-import type { DataService } from '../api/DataService';
+import type { User, WidgetType, WidgetPermission } from '../types/index.ts';
+import type { DataService } from '../api/DataService.ts';
 
 interface AuthState {
   user: User | null;

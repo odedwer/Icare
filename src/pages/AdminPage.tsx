@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { ROLE_LABELS } from '../types';
-import UserManagement from '../components/admin/UserManagement';
-import PatientForm from '../components/admin/PatientForm';
-import PermissionsManager from '../components/admin/PermissionsManager';
-import RoleManagement from '../components/admin/RoleManagement';
-import WidgetConfigManager from '../components/admin/WidgetConfigManager';
+import { useAuth } from '../context/AuthContext.tsx';
+import { ROLE_LABELS } from '../types/index.ts';
+import UserManagement from '../components/admin/UserManagement.tsx';
+import PatientForm from '../components/admin/PatientForm.tsx';
+import PermissionsManager from '../components/admin/PermissionsManager.tsx';
+import RoleManagement from '../components/admin/RoleManagement.tsx';
+import WidgetConfigManager from '../components/admin/WidgetConfigManager.tsx';
 
 type Tab = 'users' | 'patients' | 'permissions' | 'roles' | 'widget-config';
 

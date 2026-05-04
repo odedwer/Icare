@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useData } from '../context/DataContext';
-import { useAuth } from '../context/AuthContext';
-import type { Patient } from '../types';
-import { Role, ROLE_LABELS } from '../types';
+import { useData } from '../context/DataContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import type { Patient } from '../types/index.ts';
+import { Role, ROLE_LABELS } from '../types/index.ts';
 
 export default function SearchPage() {
   const { user, logout } = useAuth();

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
-import type { PatientWidget, WidgetConfig } from '../types';
-import { WIDGET_META, WIDGET_EMPTY_LABEL } from '../types';
-import { getTrafficLight } from '../utils/trafficLight';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useData } from '../context/DataContext.tsx';
+import type { PatientWidget, WidgetConfig } from '../types/index.ts';
+import { WIDGET_META, WIDGET_EMPTY_LABEL } from '../types/index.ts';
+import { getTrafficLight } from '../utils/trafficLight.ts';
 
 interface Props {
   widget: PatientWidget;

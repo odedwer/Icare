@@ -4,9 +4,15 @@
   "data": {
     "url": "REPLACE_WITH_APPSYNC_URL",
     "aws_region": "REPLACE_WITH_REGION",
-    "default_authorization_type": "API_KEY",
+    "default_authorization_type": "AWS_LAMBDA",
     "authorization_types": [],
-    "api_key": "REPLACE_WITH_API_KEY",
     "model_introspection": {}
+  },
+  "custom": {
+    "userPoolId": "REPLACE_WITH_USER_POOL_ID",
+    "userPoolClientId": "REPLACE_WITH_USER_POOL_CLIENT_ID",
+    "region": "REPLACE_WITH_REGION",
+    "photoBucketName": "REPLACE_WITH_BUCKET_NAME",
+    "cloudfrontDomain": "REPLACE_WITH_CLOUDFRONT_DOMAIN"
   }
 }

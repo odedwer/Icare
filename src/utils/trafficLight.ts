@@ -1,4 +1,4 @@
-import { WidgetType } from '../types';
+import { WidgetType } from '../types/index.ts';
 
 export type TrafficLight = 'green' | 'yellow' | 'red' | 'neutral';
 

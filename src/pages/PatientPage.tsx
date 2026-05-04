@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useData } from '../context/DataContext';
-import { useAuth } from '../context/AuthContext';
-import type { Patient, PatientWidget } from '../types';
-import { Role, WIDGET_META, ROLE_LABELS, WidgetType } from '../types';
-import WidgetCard from '../components/WidgetCard';
-import EventLogCard from '../components/EventLogCard';
+import { useData } from '../context/DataContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import type { Patient, PatientWidget } from '../types/index.ts';
+import { Role, WIDGET_META, ROLE_LABELS, WidgetType } from '../types/index.ts';
+import WidgetCard from '../components/WidgetCard.tsx';
+import EventLogCard from '../components/EventLogCard.tsx';
 
 export default function PatientPage() {
   const { patientId } = useParams<{ patientId: string }>();

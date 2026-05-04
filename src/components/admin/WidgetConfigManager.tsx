@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useData } from '../../context/DataContext';
-import type { WidgetConfig, WidgetInputType } from '../../types';
-import { WidgetType, WIDGET_META } from '../../types';
+import { useData } from '../../context/DataContext.tsx';
+import type { WidgetConfig, WidgetInputType } from '../../types/index.ts';
+import { WidgetType, WIDGET_META } from '../../types/index.ts';
 
 const ALL_WIDGET_TYPES = Object.values(WidgetType);
 

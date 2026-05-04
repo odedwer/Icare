@@ -1,14 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
-import { AmplifyDataService } from './api';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminRoute from './components/AdminRoute';
-import LoginPage from './pages/LoginPage';
-import SearchPage from './pages/SearchPage';
-import ConfirmPage from './pages/ConfirmPage';
-import PatientPage from './pages/PatientPage';
-import AdminPage from './pages/AdminPage';
+import { AuthProvider } from './context/AuthContext.tsx';
+import { DataProvider } from './context/DataContext.tsx';
+import { AmplifyDataService } from './api/index.ts';
+import ProtectedRoute from './components/ProtectedRoute.tsx';
+import AdminRoute from './components/AdminRoute.tsx';
+import LoginPage from './pages/LoginPage.tsx';
+import SearchPage from './pages/SearchPage.tsx';
+import ConfirmPage from './pages/ConfirmPage.tsx';
+import PatientPage from './pages/PatientPage.tsx';
+import AdminPage from './pages/AdminPage.tsx';
 
 const dataService = new AmplifyDataService();
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useData } from '../../context/DataContext';
-import type { RoleDefinition } from '../../types';
+import { useData } from '../../context/DataContext.tsx';
+import type { RoleDefinition } from '../../types/index.ts';
 
 export default function RoleManagement() {
   const dataService = useData();

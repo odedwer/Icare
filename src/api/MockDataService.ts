@@ -1,4 +1,4 @@
-import type { DataService, CreateUserInput, CreatePatientInput } from './DataService';
+import type { DataService, CreateUserInput, CreatePatientInput } from './DataService.ts';
 import {
   type User,
   type Patient,
@@ -10,7 +10,7 @@ import {
   Role,
   WidgetType,
   BUILT_IN_ROLES,
-} from '../types';
+} from '../types/index.ts';
 
 // Simple hash comparison for mock — in production use bcrypt/argon2
 function checkPassword(plain: string, hash: string): boolean {

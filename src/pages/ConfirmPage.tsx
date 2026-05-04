@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useData } from '../context/DataContext';
-import { useAuth } from '../context/AuthContext';
-import type { Patient } from '../types';
-import { Role } from '../types';
+import { useData } from '../context/DataContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import type { Patient } from '../types/index.ts';
+import { Role } from '../types/index.ts';
 
 const PHOTO_UPLOAD_ROLES = new Set<string>([Role.Admin, Role.HeadNurse]);
 

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
-import type { PatientWidget, EventLogEntry } from '../types';
-import { WIDGET_META, WidgetType, parseEventLog } from '../types';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useData } from '../context/DataContext.tsx';
+import type { PatientWidget, EventLogEntry } from '../types/index.ts';
+import { WIDGET_META, WidgetType, parseEventLog } from '../types/index.ts';
 
 interface Props {
   widget: PatientWidget;

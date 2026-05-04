@@ -1,7 +1,7 @@
 import { generateClient } from 'aws-amplify/data';
-import { signIn, signOut, getCurrentUser } from 'aws-amplify/auth';
+import { signIn, signOut, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import type { Schema } from '../../amplify/data/resource';
-import type { DataService, CreateUserInput, CreatePatientInput } from './DataService';
+import type { DataService, CreateUserInput, CreatePatientInput } from './DataService.ts';
 import {
   type User,
   type Patient,
@@ -14,7 +14,7 @@ import {
   type WidgetInputType,
   Role,
   WidgetType as WidgetTypeEnum,
-} from '../types';
+} from '../types/index.ts';
 
 // ─── Pagination helper ────────────────────────────────────────
 
@@ -42,12 +42,7 @@ type AuditLogRecord = Schema['AuditLogEntry']['type'];
 type RoleRecord = Schema['RoleDefinition']['type'];
 
 function toUser(r: UserRecord): User {
-  return {
-    id: r.id,
-    name: r.name,
-    username: r.username,
-    role: r.role,
-  };
+  return { id: r.id, name: r.name, username: r.username, role: r.role };
 }
 
 function toPatient(r: PatientRecord): Patient {
@@ -101,26 +96,19 @@ function toAuditEntry(r: AuditLogRecord): AuditLogEntry {
 }
 
 function toRoleDefinition(r: RoleRecord): RoleDefinition {
-  return {
-    id: r.roleId,
-    label: r.label,
-    isBuiltIn: r.isBuiltIn,
-  };
+  return { id: r.roleId, label: r.label, isBuiltIn: r.isBuiltIn };
 }
 
 // ─── Service ──────────────────────────────────────────────────
 
 export class AmplifyDataService implements DataService {
-  // Lazily initialized on first API call so that Amplify.configure() has already
-  // run by the time generateClient() is invoked. The class is instantiated at
-  // module scope in App.tsx, which is evaluated before Amplify.configure() in main.tsx.
-  private _client: ReturnType<typeof generateClient<Schema>> | null = null;
-  private get client(): ReturnType<typeof generateClient<Schema>> {
-    // Force apiKey auth so that a signed-in Cognito session doesn't override
-    // the auth mode. AppSync is configured for API_KEY / AWS_IAM only — it
-    // does not accept Cognito User Pool tokens directly.
-    if (!this._client) this._client = generateClient<Schema>({ authMode: 'apiKey' });
-    return this._client;
+  // Amplify's generateClient authToken must be a static string — not a function.
+  // We call getClient() before every operation so the Lambda authorizer always
+  // receives a fresh (auto-refreshed) Cognito ID token.
+  private async getClient(): Promise<ReturnType<typeof generateClient<Schema>>> {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString() ?? '';
+    return generateClient<Schema>({ authMode: 'lambda', authToken: token });
   }
 
   // ─── Auth ──────────────────────────────────────────────────
@@ -128,9 +116,8 @@ export class AmplifyDataService implements DataService {
   async login(username: string, password: string): Promise<User | null> {
     try {
       await signIn({ username, password });
-    } catch (error: any) {
-      if (error?.name === 'UserAlreadyAuthenticatedException') {
-        // Session already exists — sign out and retry so we use the provided credentials
+    } catch (error: unknown) {
+      if ((error as { name?: string })?.name === 'UserAlreadyAuthenticatedException') {
         await signOut();
         try {
           await signIn({ username, password });
@@ -149,10 +136,10 @@ export class AmplifyDataService implements DataService {
   async getCurrentSession(): Promise<User | null> {
     try {
       const { userId } = await getCurrentUser();
-      const { data } = await this.client.models.UserRecord.listUserRecordByCognitoId(
-        { cognitoId: userId },
-        { authMode: 'apiKey' },
-      );
+      const client = await this.getClient();
+      const { data } = await client.models.UserRecord.listUserRecordByCognitoId({
+        cognitoId: userId,
+      });
       const record = data[0];
       return record ? toUser(record) : null;
     } catch (error) {
@@ -166,7 +153,8 @@ export class AmplifyDataService implements DataService {
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const { data } = await this.client.models.UserRecord.get({ id });
+    const client = await this.getClient();
+    const { data } = await client.models.UserRecord.get({ id });
     return data ? toUser(data) : null;
   }
 
@@ -176,15 +164,14 @@ export class AmplifyDataService implements DataService {
     const q = query.trim();
     if (!q) return [];
 
-    // Exact ID lookup via secondary index — fast O(1) path
+    const client = await this.getClient();
     if (/^\d+$/.test(q)) {
-      const { data } = await this.client.models.Patient.listPatientByIdNumber({ idNumber: q });
+      const { data } = await client.models.Patient.listPatientByIdNumber({ idNumber: q });
       return data.map(toPatient);
     }
 
-    // Name search: push the filter to AppSync/DynamoDB to reduce data transfer
     const all = await listAll((nextToken) =>
-      this.client.models.Patient.list({
+      client.models.Patient.list({
         filter: { fullName: { contains: q } },
         nextToken,
       }),
@@ -193,64 +180,42 @@ export class AmplifyDataService implements DataService {
   }
 
   async getPatientById(id: string): Promise<Patient | null> {
-    const { data } = await this.client.models.Patient.get({ id });
+    const client = await this.getClient();
+    const { data } = await client.models.Patient.get({ id });
     return data ? toPatient(data) : null;
   }
 
   // ─── Widgets ───────────────────────────────────────────────
 
   async getWidgetsForPatient(patientId: string): Promise<PatientWidget[]> {
-    const { data } = await this.client.models.PatientWidget.listPatientWidgetByPatientId({ patientId });
+    const client = await this.getClient();
+    const { data } = await client.models.PatientWidget.listPatientWidgetByPatientId({ patientId });
     return data.map(toWidget);
   }
 
-  async updateWidget(widgetId: string, newValue: string, userId: string): Promise<PatientWidget> {
-    const { data: existing } = await this.client.models.PatientWidget.get({ id: widgetId });
-    if (!existing) throw new Error('Widget not found');
-
-    const { data: userRecord } = await this.client.models.UserRecord.get({ id: userId });
-    if (!userRecord) throw new Error('User not found');
-
-    const { data: perms } = await this.client.models.WidgetPermission.listWidgetPermissionByWidgetType({
-      widgetType: existing.widgetType,
-    });
-    const perm = perms[0];
-    if (!perm || !(perm.rolesAllowedToEdit as string[]).includes(userRecord.role)) {
-      throw new Error('Permission denied');
-    }
-
-    const now = new Date().toISOString();
-    const { data: updated } = await this.client.models.PatientWidget.update({
-      id: widgetId,
-      value: newValue,
-      lastUpdated: now,
-      updatedBy: userId,
-    });
+  // Permission check and audit log are now enforced server-side in updateWidgetOps Lambda.
+  // _userId is kept in the signature to satisfy the DataService interface.
+  async updateWidget(widgetId: string, newValue: string, _userId: string): Promise<PatientWidget> {
+    const client = await this.getClient();
+    const { data: updated, errors } = await client.mutations.updateWidget({ widgetId, newValue });
+    if (errors && errors.length > 0) throw new Error(errors[0].message);
     if (!updated) throw new Error('Widget update failed');
-
-    await this.client.models.AuditLogEntry.create({
-      userId,
-      patientId: existing.patientId,
-      widgetType: existing.widgetType,
-      oldValue: existing.value,
-      newValue,
-      timestamp: now,
-    });
-
-    return toWidget(updated);
+    return toWidget(updated as unknown as PatientWidgetRecord);
   }
 
   // ─── Permissions ───────────────────────────────────────────
 
   async getWidgetPermissions(): Promise<WidgetPermission[]> {
+    const client = await this.getClient();
     const all = await listAll((nextToken) =>
-      this.client.models.WidgetPermission.list({ nextToken }),
+      client.models.WidgetPermission.list({ nextToken }),
     );
     return all.map(toPermission);
   }
 
   async canEditWidget(widgetType: WidgetType, userRole: string): Promise<boolean> {
-    const { data } = await this.client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
+    const client = await this.getClient();
+    const { data } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const perm = data[0];
     return perm ? (perm.rolesAllowedToEdit as string[]).includes(userRole) : false;
   }
@@ -258,12 +223,13 @@ export class AmplifyDataService implements DataService {
   // ─── Audit ─────────────────────────────────────────────────
 
   async getAuditLog(patientId?: string): Promise<AuditLogEntry[]> {
+    const client = await this.getClient();
     if (patientId) {
-      const { data } = await this.client.models.AuditLogEntry.listAuditLogEntryByPatientId({ patientId });
+      const { data } = await client.models.AuditLogEntry.listAuditLogEntryByPatientId({ patientId });
       return data.map(toAuditEntry);
     }
     const all = await listAll((nextToken) =>
-      this.client.models.AuditLogEntry.list({ nextToken }),
+      client.models.AuditLogEntry.list({ nextToken }),
     );
     return all.map(toAuditEntry);
   }
@@ -271,17 +237,19 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Users ─────────────────────────────────────────
 
   async getAllUsers(): Promise<User[]> {
+    const client = await this.getClient();
     const all = await listAll((nextToken) =>
-      this.client.models.UserRecord.list({ nextToken }),
+      client.models.UserRecord.list({ nextToken }),
     );
-    return all.map((r) => toUser(r));
+    return all.map(toUser);
   }
 
   async createUser(input: CreateUserInput): Promise<User> {
-    const existing = await this.client.models.UserRecord.listUserRecordByUsername({ username: input.username });
+    const client = await this.getClient();
+    const existing = await client.models.UserRecord.listUserRecordByUsername({ username: input.username });
     if (existing.data.length > 0) throw new Error('שם המשתמש כבר קיים');
 
-    const { data: cognitoIdData, errors } = await this.client.mutations.userAdminCreate({
+    const { data: cognitoIdData, errors } = await client.mutations.userAdminCreate({
       username: input.username,
       password: input.password,
       role: input.role,
@@ -290,7 +258,7 @@ export class AmplifyDataService implements DataService {
     const cognitoId = cognitoIdData;
     if (!cognitoId) throw new Error('Failed to create Cognito user');
 
-    const { data } = await this.client.models.UserRecord.create({
+    const { data } = await client.models.UserRecord.create({
       cognitoId,
       name: input.name,
       username: input.username,
@@ -301,23 +269,24 @@ export class AmplifyDataService implements DataService {
   }
 
   async updateUser(id: string, updates: Partial<CreateUserInput>): Promise<User> {
-    const { data: existing } = await this.client.models.UserRecord.get({ id });
+    const client = await this.getClient();
+    const { data: existing } = await client.models.UserRecord.get({ id });
     if (!existing) throw new Error('משתמש לא נמצא');
 
     if (updates.username && updates.username !== existing.username) {
-      const dup = await this.client.models.UserRecord.listUserRecordByUsername({ username: updates.username });
+      const dup = await client.models.UserRecord.listUserRecordByUsername({ username: updates.username });
       if (dup.data.length > 0) throw new Error('שם המשתמש כבר קיים');
     }
 
     if (updates.password) {
-      const { errors } = await this.client.mutations.userAdminSetPassword({
+      const { errors } = await client.mutations.userAdminSetPassword({
         username: existing.username,
         password: updates.password,
       });
       if (errors && errors.length > 0) throw new Error(errors[0].message);
     }
 
-    const { data: updated } = await this.client.models.UserRecord.update({
+    const { data: updated } = await client.models.UserRecord.update({
       id,
       name: updates.name ?? existing.name,
       username: updates.username ?? existing.username,
@@ -328,13 +297,14 @@ export class AmplifyDataService implements DataService {
   }
 
   async deleteUser(id: string): Promise<void> {
-    const { data } = await this.client.models.UserRecord.get({ id });
+    const client = await this.getClient();
+    const { data } = await client.models.UserRecord.get({ id });
     if (!data) throw new Error('משתמש לא נמצא');
 
-    const { errors } = await this.client.mutations.userAdminDelete({ username: data.username });
+    const { errors } = await client.mutations.userAdminDelete({ username: data.username });
     if (errors && errors.length > 0) throw new Error(errors[0].message);
 
-    await this.client.models.UserRecord.delete({ id });
+    await client.models.UserRecord.delete({ id });
   }
 
   // ─── Photos ────────────────────────────────────────────────
@@ -350,7 +320,8 @@ export class AmplifyDataService implements DataService {
       reader.readAsDataURL(file);
     });
 
-    const { data: url, errors } = await this.client.mutations.uploadPatientPhoto({
+    const client = await this.getClient();
+    const { data: url, errors } = await client.mutations.uploadPatientPhoto({
       patientId,
       imageBase64: base64,
       contentType: file.type || 'image/jpeg',
@@ -358,7 +329,7 @@ export class AmplifyDataService implements DataService {
     if (errors && errors.length > 0) throw new Error(errors[0].message);
     if (!url) throw new Error('Failed to upload photo');
 
-    await this.client.models.Patient.update({ id: patientId, photoUrl: url });
+    await client.models.Patient.update({ id: patientId, photoUrl: url });
 
     return url;
   }
@@ -366,17 +337,19 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Patients ──────────────────────────────────────
 
   async getAllPatients(): Promise<Patient[]> {
+    const client = await this.getClient();
     const all = await listAll((nextToken) =>
-      this.client.models.Patient.list({ nextToken }),
+      client.models.Patient.list({ nextToken }),
     );
     return all.map(toPatient);
   }
 
   async createPatient(input: CreatePatientInput): Promise<Patient> {
-    const existing = await this.client.models.Patient.listPatientByIdNumber({ idNumber: input.idNumber });
+    const client = await this.getClient();
+    const existing = await client.models.Patient.listPatientByIdNumber({ idNumber: input.idNumber });
     if (existing.data.length > 0) throw new Error('מספר ת.ז כבר קיים במערכת');
 
-    const { data: patient } = await this.client.models.Patient.create({
+    const { data: patient } = await client.models.Patient.create({
       fullName: input.fullName,
       idNumber: input.idNumber,
       photoUrl: input.photoUrl,
@@ -386,12 +359,11 @@ export class AmplifyDataService implements DataService {
     });
     if (!patient) throw new Error('Failed to create patient');
 
-    // Create default empty widgets for the new patient
     const now = new Date().toISOString();
     const widgetTypes = Object.values(WidgetTypeEnum);
     await Promise.all(
       widgetTypes.map((wt) =>
-        this.client.models.PatientWidget.create({
+        client.models.PatientWidget.create({
           patientId: patient.id,
           widgetType: wt,
           value: '',
@@ -407,11 +379,12 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Permissions ───────────────────────────────────
 
   async updateWidgetPermissions(widgetType: WidgetType, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
-    const { data: existing } = await this.client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
+    const client = await this.getClient();
+    const { data: existing } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const record = existing[0];
     if (!record) throw new Error('סוג ווידג\'ט לא נמצא');
 
-    const { data: updated } = await this.client.models.WidgetPermission.update({
+    const { data: updated } = await client.models.WidgetPermission.update({
       id: record.id,
       rolesAllowedToEdit,
     });
@@ -422,72 +395,75 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Roles ─────────────────────────────────────────
 
   async getAllRoles(): Promise<RoleDefinition[]> {
+    const client = await this.getClient();
     const all = await listAll((nextToken) =>
-      this.client.models.RoleDefinition.list({ nextToken }),
+      client.models.RoleDefinition.list({ nextToken }),
     );
     return all.map(toRoleDefinition);
   }
 
   async createRole(id: string, label: string): Promise<RoleDefinition> {
-    const existing = await this.client.models.RoleDefinition.listRoleDefinitionByRoleId({ roleId: id });
+    const client = await this.getClient();
+    const existing = await client.models.RoleDefinition.listRoleDefinitionByRoleId({ roleId: id });
     if (existing.data.length > 0) throw new Error('מזהה התפקיד כבר קיים');
 
-    const { data } = await this.client.models.RoleDefinition.create({ roleId: id, label, isBuiltIn: false });
+    const { data } = await client.models.RoleDefinition.create({ roleId: id, label, isBuiltIn: false });
     if (!data) throw new Error('Failed to create role');
     return toRoleDefinition(data);
   }
 
   async deleteRole(id: string): Promise<void> {
-    const existing = await this.client.models.RoleDefinition.listRoleDefinitionByRoleId({ roleId: id });
+    const client = await this.getClient();
+    const existing = await client.models.RoleDefinition.listRoleDefinitionByRoleId({ roleId: id });
     const record = existing.data[0];
     if (!record) throw new Error('תפקיד לא נמצא');
     if (record.isBuiltIn) throw new Error('לא ניתן למחוק תפקיד מובנה');
 
-    // Remove role from all permissions
     const allPerms = await listAll((nextToken) =>
-      this.client.models.WidgetPermission.list({ nextToken }),
+      client.models.WidgetPermission.list({ nextToken }),
     );
     await Promise.all(
       allPerms
         .filter((p) => (p.rolesAllowedToEdit as string[]).includes(id))
         .map((p) =>
-          this.client.models.WidgetPermission.update({
+          client.models.WidgetPermission.update({
             id: p.id,
             rolesAllowedToEdit: (p.rolesAllowedToEdit as string[]).filter((r) => r !== id),
           }),
         ),
     );
 
-    // Reassign users with this role to Caregiver
     const allUsers = await listAll((nextToken) =>
-      this.client.models.UserRecord.list({ nextToken }),
+      client.models.UserRecord.list({ nextToken }),
     );
     await Promise.all(
       allUsers
         .filter((u) => u.role === id)
         .map((u) =>
-          this.client.models.UserRecord.update({ id: u.id, role: Role.Caregiver }),
+          client.models.UserRecord.update({ id: u.id, role: Role.Caregiver }),
         ),
     );
 
-    await this.client.models.RoleDefinition.delete({ id: record.id });
+    await client.models.RoleDefinition.delete({ id: record.id });
   }
 
   // ─── Admin — Widget Config ─────────────────────────────────
 
   async getWidgetConfigs(): Promise<WidgetConfig[]> {
+    const client = await this.getClient();
     const all = await listAll((nextToken) =>
-      this.client.models.WidgetConfig.list({ nextToken }),
+      client.models.WidgetConfig.list({ nextToken }),
     );
     return all.map(toWidgetConfig);
   }
 
   async updateWidgetConfig(widgetType: WidgetType, inputType: WidgetInputType, options: string[]): Promise<WidgetConfig> {
-    const { data: existing } = await this.client.models.WidgetConfig.listWidgetConfigByWidgetType({ widgetType });
+    const client = await this.getClient();
+    const { data: existing } = await client.models.WidgetConfig.listWidgetConfigByWidgetType({ widgetType });
     const record = existing[0];
     if (!record) throw new Error('סוג ווידג\'ט לא נמצא');
 
-    const { data: updated } = await this.client.models.WidgetConfig.update({
+    const { data: updated } = await client.models.WidgetConfig.update({
       id: record.id,
       inputType,
       options,

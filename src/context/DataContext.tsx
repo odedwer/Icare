@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { DataService } from '../api/DataService';
+import type { DataService } from '../api/DataService.ts';
 
 const DataContext = createContext<DataService | null>(null);
 
