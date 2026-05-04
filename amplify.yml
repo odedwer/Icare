@@ -4,6 +4,7 @@ frontend:
     preBuild:
       commands:
         - npm ci --legacy-peer-deps
+        - npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID
     build:
       commands:
         - npm run build
