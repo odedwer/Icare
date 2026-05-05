@@ -1,5 +1,5 @@
 import { defineBackend } from '@aws-amplify/backend';
-import { RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import { UserPool, UserPoolClient, AccountRecovery } from 'aws-cdk-lib/aws-cognito';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
@@ -30,6 +30,7 @@ const userPool = new UserPool(authStack, 'UserPool', {
     requireUppercase: true,
     requireDigits: true,
     requireSymbols: false,
+    tempPasswordValidity: Duration.days(365), // max allowed — admin always sets permanent passwords anyway
   },
   accountRecovery: AccountRecovery.NONE,
 });
@@ -41,6 +42,9 @@ const userPoolClient = new UserPoolClient(authStack, 'UserPoolClient', {
     userSrp: true,
   },
   generateSecret: false,
+  refreshTokenValidity: Duration.days(3650), // 10 years — users stay logged in without maintenance
+  accessTokenValidity: Duration.hours(1),
+  idTokenValidity: Duration.hours(1),
 });
 
 // ─── Lambda finder helper ──────────────────────────────────────────────────────
