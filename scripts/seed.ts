@@ -4,6 +4,7 @@
  *
  *   npx tsx scripts/seed.ts
  */
+import { randomUUID } from 'crypto';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import {
@@ -15,6 +16,8 @@ import {
   InitiateAuthCommand,
   AuthFlowType,
 } from '@aws-sdk/client-cognito-identity-provider';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import type { Schema } from '../amplify/data/resource';
 import outputs from '../amplify_outputs.json';
 
@@ -25,6 +28,7 @@ Amplify.configure(outputs);
 const custom = (outputs as any).custom as {
   userPoolId?: string;
   userPoolClientId?: string;
+  userRecordTableName?: string;
   region?: string;
 } | undefined;
 
@@ -52,6 +56,12 @@ if (!userPoolClientId) {
 
 const region = (outputs as any).auth?.aws_region as string | undefined ?? custom?.region ?? 'us-east-1';
 const cognitoClient = new CognitoIdentityProviderClient({ region });
+
+const userRecordTableName = custom?.userRecordTableName;
+if (!userRecordTableName) {
+  throw new Error('Could not find userRecordTableName in amplify_outputs.json (.custom.userRecordTableName). Re-run: npx ampx generate outputs');
+}
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
 
 // ─── Seed Data ───────────────────────────────────────────────
 
@@ -230,7 +240,10 @@ async function seedInBatches<T>(
   console.log(`Seeding ${items.length} ${label}...`);
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
-    await Promise.all(batch.map(creator));
+    const results = await Promise.allSettled(batch.map(creator));
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`  [${label}] item ${i} failed:`, r.reason);
+    });
     process.stdout.write(`  ${Math.min(i + batchSize, items.length)}/${items.length}\r`);
   }
   console.log(`  Done: ${items.length} ${label}`);
@@ -310,10 +323,33 @@ async function main() {
   const idToken = authRes.AuthenticationResult?.IdToken;
   if (!idToken) throw new Error('Authentication failed — could not get Cognito ID token');
 
+  // ── Step 3: Bootstrap UserRecords via DynamoDB (bypasses AppSync Lambda auth) ─
+  // The Lambda authorizer requires a UserRecord to authorize any AppSync request.
+  // On a fresh system there are none — chicken-and-egg. Write them directly to
+  // DynamoDB first so the authorizer can find them on the very first AppSync call.
+  const now = new Date().toISOString();
+  for (const u of USERS) {
+    await dynamo.send(new PutCommand({
+      TableName: userRecordTableName,
+      Item: {
+        id: randomUUID(),
+        __typename: 'UserRecord',
+        cognitoId: cognitoSubs[u.username],
+        name: u.name,
+        username: u.username,
+        role: u.role,
+        createdAt: now,
+        updatedAt: now,
+      },
+    }));
+    console.log(`  ✓ UserRecord: ${u.username}`);
+  }
+  console.log();
+
   const client = generateClient<Schema>({ authMode: 'lambda', authToken: idToken });
   console.log('Authenticated as', adminUser.username, '\n');
 
-  // ── Step 3: Check / clear existing data ─────────────────────────────────────
+  // ── Step 4: Check / clear existing data ─────────────────────────────────────
   const { data: existingRoles } = await client.models.RoleDefinition.list({ limit: 1 });
   if (existingRoles.length > 0) {
     console.log('Database already contains data. Run with --force to re-seed (deletes all existing records first).');
@@ -360,18 +396,7 @@ async function main() {
     client.models.RoleDefinition.create(r),
   );
 
-  // Cognito users already provisioned in Step 1 — just create DynamoDB UserRecords
-  console.log(`Seeding ${USERS.length} users...`);
-  for (const u of USERS) {
-    await client.models.UserRecord.create({
-      cognitoId: cognitoSubs[u.username],
-      name: u.name,
-      username: u.username,
-      role: u.role,
-    });
-    console.log(`  Created user record: ${u.username}`);
-  }
-  console.log(`  Done: ${USERS.length} users`);
+  // UserRecords already bootstrapped via DynamoDB in Step 3 — skip AppSync create.
 
   await seedInBatches('widget permissions', PERMISSIONS, (p) =>
     client.models.WidgetPermission.create(p),
@@ -382,11 +407,10 @@ async function main() {
   );
 
   console.log(`\nSeeding ${PATIENTS.length} patients + widgets...`);
-  const now = new Date().toISOString();
   for (let i = 0; i < PATIENTS.length; i++) {
     const p = PATIENTS[i];
-    const { data: patient } = await client.models.Patient.create(p);
-    if (!patient) { console.error(`Failed to create patient ${p.fullName}`); continue; }
+    const { data: patient, errors: patientErrors } = await client.models.Patient.create(p);
+    if (!patient) { console.error(`Failed to create patient ${p.fullName}:`, patientErrors); continue; }
 
     await Promise.all(
       WIDGET_TYPES.map((wt) =>

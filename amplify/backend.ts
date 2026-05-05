@@ -148,5 +148,6 @@ backend.addOutput({
     region: authStack.region,
     photoBucketName: photoBucket.bucketName,
     cloudfrontDomain: photoDistribution.domainName,
+    userRecordTableName: userRecordTable.tableName,
   },
 });
