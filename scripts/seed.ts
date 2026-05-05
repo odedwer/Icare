@@ -12,19 +12,22 @@ import {
   AdminSetUserPasswordCommand,
   AdminDeleteUserCommand,
   ListUsersCommand,
+  InitiateAuthCommand,
+  AuthFlowType,
 } from '@aws-sdk/client-cognito-identity-provider';
 import type { Schema } from '../amplify/data/resource';
 import outputs from '../amplify_outputs.json';
 
 Amplify.configure(outputs);
-const client = generateClient<Schema>();
 
 // ─── Cognito setup ───────────────────────────────────────────
 
-// The User Pool is created via raw CDK (bypassing defineAuth), so its ID is not in
-// amplify_outputs.json. Read it from environment variables instead.
-// Set VITE_USER_POOL_ID and VITE_USER_POOL_ID in .env.local (same vars used by the frontend).
-const custom = (outputs as any).custom as { userPoolId?: string; region?: string } | undefined;
+const custom = (outputs as any).custom as {
+  userPoolId?: string;
+  userPoolClientId?: string;
+  region?: string;
+} | undefined;
+
 const userPoolId = (
   (outputs as any).auth?.user_pool_id as string | undefined ??
   custom?.userPoolId ??
@@ -36,6 +39,15 @@ if (!userPoolId) {
     'Could not find User Pool ID in amplify_outputs.json (.custom.userPoolId). ' +
     'Run the sandbox first, or set VITE_USER_POOL_ID in .env.local.',
   );
+}
+
+const userPoolClientId = (
+  (outputs as any).auth?.user_pool_client_id as string | undefined ??
+  custom?.userPoolClientId
+)?.trim();
+
+if (!userPoolClientId) {
+  throw new Error('Could not find userPoolClientId in amplify_outputs.json (.custom.userPoolClientId).');
 }
 
 const region = (outputs as any).auth?.aws_region as string | undefined ?? custom?.region ?? 'us-east-1';
@@ -224,12 +236,84 @@ async function seedInBatches<T>(
   console.log(`  Done: ${items.length} ${label}`);
 }
 
+// ─── Helpers ─────────────────────────────────────────────────
+
+// Creates a Cognito user (or resets an expired one) and sets a permanent password.
+// Returns the Cognito sub (UUID) for later use as cognitoId.
+async function ensureCognitoUser(username: string, password: string): Promise<string> {
+  let sub: string | undefined;
+  try {
+    const res = await cognitoClient.send(
+      new AdminCreateUserCommand({
+        UserPoolId: userPoolId!,
+        Username: username,
+        MessageAction: 'SUPPRESS',
+        UserAttributes: [],
+      }),
+    );
+    sub = res.User?.Attributes?.find((a) => a.Name === 'sub')?.Value;
+  } catch (err) {
+    if ((err as { name?: string })?.name === 'UsernameExistsException') {
+      // User exists (possibly expired) — delete and recreate
+      await cognitoClient.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId!, Username: username }));
+      const res = await cognitoClient.send(
+        new AdminCreateUserCommand({
+          UserPoolId: userPoolId!,
+          Username: username,
+          MessageAction: 'SUPPRESS',
+          UserAttributes: [],
+        }),
+      );
+      sub = res.User?.Attributes?.find((a) => a.Name === 'sub')?.Value;
+    } else {
+      throw err;
+    }
+  }
+  await cognitoClient.send(
+    new AdminSetUserPasswordCommand({
+      UserPoolId: userPoolId!,
+      Username: username,
+      Password: password,
+      Permanent: true,
+    }),
+  );
+  if (!sub) throw new Error(`Failed to get Cognito sub for user ${username}`);
+  return sub;
+}
+
 // ─── Main ─────────────────────────────────────────────────────
 
 async function main() {
   console.log('=== ICare Seed Script ===\n');
 
-  // Guard: abort if data already exists to prevent duplicates
+  // ── Step 1: Provision Cognito users ─────────────────────────────────────────
+  // Uses the Cognito Admin SDK with local AWS credentials — no AppSync auth needed.
+  // ensureCognitoUser handles expired/existing users automatically.
+  console.log('Provisioning Cognito users...');
+  const cognitoSubs: Record<string, string> = {};
+  for (const u of USERS) {
+    cognitoSubs[u.username] = await ensureCognitoUser(u.username, u.password);
+    console.log(`  ✓ ${u.username}`);
+  }
+  console.log();
+
+  // ── Step 2: Authenticate to get a Cognito ID token ──────────────────────────
+  // All AppSync operations require Lambda auth — the authorizer validates the ID token.
+  const adminUser = USERS[0];
+  const authRes = await cognitoClient.send(
+    new InitiateAuthCommand({
+      AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
+      ClientId: userPoolClientId!,
+      AuthParameters: { USERNAME: adminUser.username, PASSWORD: adminUser.password },
+    }),
+  );
+  const idToken = authRes.AuthenticationResult?.IdToken;
+  if (!idToken) throw new Error('Authentication failed — could not get Cognito ID token');
+
+  const client = generateClient<Schema>({ authMode: 'lambda', authToken: idToken });
+  console.log('Authenticated as', adminUser.username, '\n');
+
+  // ── Step 3: Check / clear existing data ─────────────────────────────────────
   const { data: existingRoles } = await client.models.RoleDefinition.list({ limit: 1 });
   if (existingRoles.length > 0) {
     console.log('Database already contains data. Run with --force to re-seed (deletes all existing records first).');
@@ -237,30 +321,21 @@ async function main() {
 
     console.log('--force detected, clearing existing data...');
 
-    // Delete all Cognito users first
-    console.log('Deleting Cognito users...');
+    // Delete any extra Cognito users not in the USERS list
+    const knownUsernames = new Set(USERS.map((u) => u.username));
     let paginationToken: string | undefined;
     do {
       const listRes = await cognitoClient.send(
-        new ListUsersCommand({
-          UserPoolId: userPoolId,
-          PaginationToken: paginationToken,
-        }),
+        new ListUsersCommand({ UserPoolId: userPoolId!, PaginationToken: paginationToken }),
       );
-      const cognitoUsers = listRes.Users ?? [];
+      const extras = (listRes.Users ?? []).filter((u) => !knownUsernames.has(u.Username!));
       await Promise.all(
-        cognitoUsers.map((u) =>
-          cognitoClient.send(
-            new AdminDeleteUserCommand({
-              UserPoolId: userPoolId,
-              Username: u.Username!,
-            }),
-          ),
+        extras.map((u) =>
+          cognitoClient.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId!, Username: u.Username! })),
         ),
       );
       paginationToken = listRes.PaginationToken;
     } while (paginationToken);
-    console.log('Cognito users deleted.');
 
     const [roles, users, perms, configs, patients, widgets] = await Promise.all([
       client.models.RoleDefinition.list(),
@@ -285,38 +360,16 @@ async function main() {
     client.models.RoleDefinition.create(r),
   );
 
-  // Seed users: create in Cognito first, then create DynamoDB UserRecord
+  // Cognito users already provisioned in Step 1 — just create DynamoDB UserRecords
   console.log(`Seeding ${USERS.length} users...`);
   for (const u of USERS) {
-    const createRes = await cognitoClient.send(
-      new AdminCreateUserCommand({
-        UserPoolId: userPoolId,
-        Username: u.username,
-        MessageAction: 'SUPPRESS',
-        UserAttributes: [],
-      }),
-    );
-
-    await cognitoClient.send(
-      new AdminSetUserPasswordCommand({
-        UserPoolId: userPoolId,
-        Username: u.username,
-        Password: u.password,
-        Permanent: true,
-      }),
-    );
-
-    const sub = createRes.User?.Attributes?.find((a) => a.Name === 'sub')?.Value;
-    if (!sub) throw new Error(`Failed to get Cognito sub for user ${u.username}`);
-
     await client.models.UserRecord.create({
-      cognitoId: sub,
+      cognitoId: cognitoSubs[u.username],
       name: u.name,
       username: u.username,
       role: u.role,
     });
-
-    console.log(`  Created user: ${u.username}`);
+    console.log(`  Created user record: ${u.username}`);
   }
   console.log(`  Done: ${USERS.length} users`);
 
