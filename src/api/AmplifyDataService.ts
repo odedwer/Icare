@@ -143,7 +143,10 @@ export class AmplifyDataService implements DataService {
       const record = data[0];
       return record ? toUser(record) : null;
     } catch (error) {
-      console.error('[getCurrentSession] failed:', error);
+      // UserUnAuthenticatedException is expected on page load when no session exists
+      if ((error as { name?: string })?.name !== 'UserUnAuthenticatedException') {
+        console.error('[getCurrentSession] failed:', error);
+      }
       return null;
     }
   }
