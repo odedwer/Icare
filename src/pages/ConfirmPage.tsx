@@ -89,7 +89,7 @@ export default function ConfirmPage() {
               <button
                 className="btn-photo-upload"
                 onClick={() => setSourceModalOpen(true)}
-                disabled={uploading}
+                disabled={uploading || cropFile !== null}
                 title="החלפת תמונה"
               >
                 {uploading ? '…' : '📷'}
