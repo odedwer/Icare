@@ -89,74 +89,91 @@ export default function PhotoCropModal({ file, onConfirm, onCancel }: PhotoCropM
 
   const onMouseUp = () => { dragRef.current = null; };
 
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const img = imgRef.current;
-    if (!img) return;
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(minScale(img), scaleRef.current * factor);
-    const cx = CIRCLE_SIZE / 2;
-    const cy = CIRCLE_SIZE / 2;
-    offsetRef.current.x = cx - (cx - offsetRef.current.x) * (newScale / scaleRef.current);
-    offsetRef.current.y = cy - (cy - offsetRef.current.y) * (newScale / scaleRef.current);
-    scaleRef.current = newScale;
-    clamp();
-    draw();
-  };
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const t = e.touches[0];
-      dragRef.current = {
-        startX: t.clientX,
-        startY: t.clientY,
-        startOffsetX: offsetRef.current.x,
-        startOffsetY: offsetRef.current.y,
-      };
-      lastPinchDistRef.current = null;
-    } else if (e.touches.length === 2) {
-      dragRef.current = null;
-      lastPinchDistRef.current = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY,
-      );
-    }
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-    const img = imgRef.current;
-    if (!img) return;
-    if (e.touches.length === 1 && dragRef.current) {
-      const t = e.touches[0];
-      offsetRef.current = {
-        x: dragRef.current.startOffsetX + (t.clientX - dragRef.current.startX),
-        y: dragRef.current.startOffsetY + (t.clientY - dragRef.current.startY),
-      };
-      clamp();
-      draw();
-    } else if (e.touches.length === 2 && lastPinchDistRef.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY,
-      );
-      const ratio = dist / lastPinchDistRef.current;
-      const newScale = Math.max(minScale(img), scaleRef.current * ratio);
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const img = imgRef.current;
+      if (!img) return;
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newScale = Math.max(minScale(img), scaleRef.current * factor);
       const cx = CIRCLE_SIZE / 2;
       const cy = CIRCLE_SIZE / 2;
       offsetRef.current.x = cx - (cx - offsetRef.current.x) * (newScale / scaleRef.current);
       offsetRef.current.y = cy - (cy - offsetRef.current.y) * (newScale / scaleRef.current);
       scaleRef.current = newScale;
-      lastPinchDistRef.current = dist;
       clamp();
       draw();
-    }
-  };
+    };
 
-  const onTouchEnd = () => {
-    dragRef.current = null;
-    lastPinchDistRef.current = null;
-  };
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        dragRef.current = {
+          startX: t.clientX,
+          startY: t.clientY,
+          startOffsetX: offsetRef.current.x,
+          startOffsetY: offsetRef.current.y,
+        };
+        lastPinchDistRef.current = null;
+      } else if (e.touches.length === 2) {
+        dragRef.current = null;
+        lastPinchDistRef.current = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY,
+        );
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const img = imgRef.current;
+      if (!img) return;
+      if (e.touches.length === 1 && dragRef.current) {
+        const t = e.touches[0];
+        offsetRef.current = {
+          x: dragRef.current.startOffsetX + (t.clientX - dragRef.current.startX),
+          y: dragRef.current.startOffsetY + (t.clientY - dragRef.current.startY),
+        };
+        clamp();
+        draw();
+      } else if (e.touches.length === 2 && lastPinchDistRef.current !== null) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY,
+        );
+        const ratio = dist / lastPinchDistRef.current;
+        const newScale = Math.max(minScale(img), scaleRef.current * ratio);
+        const cx = CIRCLE_SIZE / 2;
+        const cy = CIRCLE_SIZE / 2;
+        offsetRef.current.x = cx - (cx - offsetRef.current.x) * (newScale / scaleRef.current);
+        offsetRef.current.y = cy - (cy - offsetRef.current.y) * (newScale / scaleRef.current);
+        scaleRef.current = newScale;
+        lastPinchDistRef.current = dist;
+        clamp();
+        draw();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      dragRef.current = null;
+      lastPinchDistRef.current = null;
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [minScale, clamp, draw]);
 
   const handleConfirm = () => {
     const img = imgRef.current;
@@ -191,10 +208,6 @@ export default function PhotoCropModal({ file, onConfirm, onCancel }: PhotoCropM
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
-          onWheel={onWheel}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         />
         <p className="photo-crop-hint">גרור להזזה · גלגל עכבר / פינץ׳ לזום</p>
         <div className="photo-crop-actions">
