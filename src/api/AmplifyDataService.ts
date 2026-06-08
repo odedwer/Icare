@@ -342,12 +342,20 @@ export class AmplifyDataService implements DataService {
     });
 
     const client = this.getClient();
-    const { data: url, errors } = await client.mutations.uploadPatientPhoto({
-      patientId,
-      imageBase64: base64,
-      contentType: file.type || 'image/jpeg',
-    });
-    if (errors && errors.length > 0) throw new Error(errors[0].message);
+    let url: string | null | undefined;
+    let uploadErrors: { message: string }[] | null | undefined;
+    try {
+      const result = await client.mutations.uploadPatientPhoto({
+        patientId,
+        imageBase64: base64,
+        contentType: file.type || 'image/jpeg',
+      });
+      url = result.data;
+      uploadErrors = result.errors;
+    } catch (e: unknown) {
+      throw new Error(e instanceof Error ? e.message : 'שגיאה בהעלאת התמונה — ודא שאתה מחובר כמנהל');
+    }
+    if (uploadErrors && uploadErrors.length > 0) throw new Error(uploadErrors[0].message);
     if (!url) throw new Error('Failed to upload photo');
 
     await client.models.Patient.update({ id: patientId, photoUrl: url });
