@@ -157,7 +157,7 @@ const PERMISSIONS: WidgetPermission[] = [
   { widgetType: WidgetType.MedicalDiagnoses, rolesAllowedToEdit: [Role.Doctor, Role.Psychiatrist, Role.Admin] },
   { widgetType: WidgetType.PersonalDevelopment, rolesAllowedToEdit: [Role.DevelopmentCoordinator, Role.EducationCoordinator, Role.SocialWorker, Role.Admin] },
   { widgetType: WidgetType.ExceptionalEvents, rolesAllowedToEdit: [Role.Caregiver, Role.Nurse, Role.HeadNurse, Role.SocialWorker, Role.Admin] },
-  { widgetType: 'photo_upload', rolesAllowedToEdit: [Role.Admin, Role.HeadNurse] },
+  { widgetType: 'photo_upload', rolesAllowedToEdit: [Role.Admin, Role.HeadNurse] }, // not in WidgetType enum — permission-only key
 ];
 
 const WIDGET_CONFIGS: WidgetConfig[] = [
