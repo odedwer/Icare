@@ -106,7 +106,7 @@ export class AmplifyDataService implements DataService {
   // We call getClient() before every operation so the Lambda authorizer always
   // receives a fresh (auto-refreshed) Cognito ID token.
   private getClient(): ReturnType<typeof generateClient<Schema>> {
-    return generateClient<Schema>({ authMode: 'apiKey' });
+    return generateClient<Schema>();
   }
 
   // ─── Auth ──────────────────────────────────────────────────

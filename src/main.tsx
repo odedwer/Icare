@@ -12,13 +12,19 @@ import './styles.css';
 const custom = (outputs as any).custom as { userPoolId: string; userPoolClientId: string };
 const data = (outputs as any).data;
 
+// Choose auth mode based on what the deployed backend supports.
+// API_KEY is the default when deployed with defineData({ authorizationModes: { defaultAuthorizationMode: 'apiKey' } });
+// lambda is used when a custom Lambda authorizer is configured.
+const defaultAuthMode = (data.default_authorization_type === 'API_KEY' ? 'apiKey' : 'lambda') as 'apiKey' | 'lambda';
+
 console.log('[Amplify] userPoolId:', custom.userPoolId, 'clientId:', custom.userPoolClientId);
 Amplify.configure({
   API: {
     GraphQL: {
       endpoint: data.url,
       region: data.aws_region,
-      defaultAuthMode: 'lambda' as const,
+      defaultAuthMode,
+      apiKey: data.api_key,
       modelIntrospection: data.model_introspection as any,
     },
   },
