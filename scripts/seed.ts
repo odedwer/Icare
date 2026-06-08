@@ -205,6 +205,7 @@ const PERMISSIONS = [
   { widgetType: 'medical_diagnoses', rolesAllowedToEdit: ['doctor', 'psychiatrist', 'admin'] },
   { widgetType: 'personal_development', rolesAllowedToEdit: ['development_coordinator', 'education_coordinator', 'social_worker', 'admin'] },
   { widgetType: 'exceptional_events', rolesAllowedToEdit: ['caregiver', 'nurse', 'head_nurse', 'social_worker', 'admin'] },
+  { widgetType: 'photo_upload', rolesAllowedToEdit: ['admin', 'head_nurse'] },
 ];
 
 const WIDGET_CONFIGS = [
