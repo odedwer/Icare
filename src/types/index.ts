@@ -83,7 +83,7 @@ export interface WidgetConfig {
 }
 
 export interface WidgetPermission {
-  widgetType: WidgetType;
+  widgetType: string;
   rolesAllowedToEdit: string[];
 }
 

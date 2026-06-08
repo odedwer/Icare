@@ -214,7 +214,7 @@ export class AmplifyDataService implements DataService {
     return all.map(toPermission);
   }
 
-  async canEditWidget(widgetType: WidgetType, userRole: string): Promise<boolean> {
+  async canEditWidget(widgetType: string, userRole: string): Promise<boolean> {
     const client = this.getClient();
     const { data } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const perm = data[0];
@@ -407,7 +407,7 @@ export class AmplifyDataService implements DataService {
 
   // ─── Admin — Permissions ───────────────────────────────────
 
-  async updateWidgetPermissions(widgetType: WidgetType, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
+  async updateWidgetPermissions(widgetType: string, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
     const client = this.getClient();
     const { data: existing } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const record = existing[0];

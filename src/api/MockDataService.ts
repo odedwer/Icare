@@ -157,6 +157,7 @@ const PERMISSIONS: WidgetPermission[] = [
   { widgetType: WidgetType.MedicalDiagnoses, rolesAllowedToEdit: [Role.Doctor, Role.Psychiatrist, Role.Admin] },
   { widgetType: WidgetType.PersonalDevelopment, rolesAllowedToEdit: [Role.DevelopmentCoordinator, Role.EducationCoordinator, Role.SocialWorker, Role.Admin] },
   { widgetType: WidgetType.ExceptionalEvents, rolesAllowedToEdit: [Role.Caregiver, Role.Nurse, Role.HeadNurse, Role.SocialWorker, Role.Admin] },
+  { widgetType: 'photo_upload', rolesAllowedToEdit: [Role.Admin, Role.HeadNurse] },
 ];
 
 const WIDGET_CONFIGS: WidgetConfig[] = [
@@ -267,7 +268,7 @@ export class MockDataService implements DataService {
     return [...this.permissions];
   }
 
-  async canEditWidget(widgetType: WidgetType, userRole: string): Promise<boolean> {
+  async canEditWidget(widgetType: string, userRole: string): Promise<boolean> {
     const perm = this.permissions.find((p) => p.widgetType === widgetType);
     return perm ? perm.rolesAllowedToEdit.includes(userRole) : false;
   }
@@ -360,7 +361,7 @@ export class MockDataService implements DataService {
 
   // ─── Admin — Permissions ────────────────────────────────────
 
-  async updateWidgetPermissions(widgetType: WidgetType, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
+  async updateWidgetPermissions(widgetType: string, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
     const idx = this.permissions.findIndex((p) => p.widgetType === widgetType);
     if (idx === -1) throw new Error('סוג ווידג\'ט לא נמצא');
 
