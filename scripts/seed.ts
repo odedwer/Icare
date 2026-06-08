@@ -57,11 +57,17 @@ if (!userPoolClientId) {
 const region = (outputs as any).auth?.aws_region as string | undefined ?? custom?.region ?? 'us-east-1';
 const cognitoClient = new CognitoIdentityProviderClient({ region });
 
+// Detect auth mode from outputs — lambda auth requires DynamoDB bootstrap; apiKey does not.
+const defaultAuthType = (outputs as any).data?.default_authorization_type as string | undefined ?? 'AWS_LAMBDA';
+const useLambdaAuth = defaultAuthType !== 'API_KEY';
+
 const userRecordTableName = custom?.userRecordTableName;
-if (!userRecordTableName) {
+if (useLambdaAuth && !userRecordTableName) {
   throw new Error('Could not find userRecordTableName in amplify_outputs.json (.custom.userRecordTableName). Re-run: npx ampx generate outputs');
 }
-const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
+const dynamo = useLambdaAuth
+  ? DynamoDBDocumentClient.from(new DynamoDBClient({ region }))
+  : null;
 
 // ─── Seed Data ───────────────────────────────────────────────
 
@@ -310,44 +316,52 @@ async function main() {
   }
   console.log();
 
-  // ── Step 2: Authenticate to get a Cognito ID token ──────────────────────────
-  // All AppSync operations require Lambda auth — the authorizer validates the ID token.
-  const adminUser = USERS[0];
-  const authRes = await cognitoClient.send(
-    new InitiateAuthCommand({
-      AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
-      ClientId: userPoolClientId!,
-      AuthParameters: { USERNAME: adminUser.username, PASSWORD: adminUser.password },
-    }),
-  );
-  const idToken = authRes.AuthenticationResult?.IdToken;
-  if (!idToken) throw new Error('Authentication failed — could not get Cognito ID token');
-
-  // ── Step 3: Bootstrap UserRecords via DynamoDB (bypasses AppSync Lambda auth) ─
-  // The Lambda authorizer requires a UserRecord to authorize any AppSync request.
-  // On a fresh system there are none — chicken-and-egg. Write them directly to
-  // DynamoDB first so the authorizer can find them on the very first AppSync call.
   const now = new Date().toISOString();
-  for (const u of USERS) {
-    await dynamo.send(new PutCommand({
-      TableName: userRecordTableName,
-      Item: {
-        id: randomUUID(),
-        __typename: 'UserRecord',
-        cognitoId: cognitoSubs[u.username],
-        name: u.name,
-        username: u.username,
-        role: u.role,
-        createdAt: now,
-        updatedAt: now,
-      },
-    }));
-    console.log(`  ✓ UserRecord: ${u.username}`);
-  }
-  console.log();
+  let client: ReturnType<typeof generateClient<Schema>>;
 
-  const client = generateClient<Schema>({ authMode: 'lambda', authToken: idToken });
-  console.log('Authenticated as', adminUser.username, '\n');
+  if (useLambdaAuth) {
+    // ── Step 2: Authenticate to get a Cognito ID token ────────────────────────
+    // Lambda authorizer validates the ID token on every AppSync request.
+    const adminUser = USERS[0];
+    const authRes = await cognitoClient.send(
+      new InitiateAuthCommand({
+        AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
+        ClientId: userPoolClientId!,
+        AuthParameters: { USERNAME: adminUser.username, PASSWORD: adminUser.password },
+      }),
+    );
+    const idToken = authRes.AuthenticationResult?.IdToken;
+    if (!idToken) throw new Error('Authentication failed — could not get Cognito ID token');
+
+    // ── Step 3: Bootstrap UserRecords via DynamoDB (bypasses AppSync Lambda auth)
+    // The Lambda authorizer requires a UserRecord to authorize any AppSync request.
+    // On a fresh system there are none — chicken-and-egg. Write them directly to
+    // DynamoDB first so the authorizer can find them on the very first AppSync call.
+    for (const u of USERS) {
+      await dynamo!.send(new PutCommand({
+        TableName: userRecordTableName!,
+        Item: {
+          id: randomUUID(),
+          __typename: 'UserRecord',
+          cognitoId: cognitoSubs[u.username],
+          name: u.name,
+          username: u.username,
+          role: u.role,
+          createdAt: now,
+          updatedAt: now,
+        },
+      }));
+      console.log(`  ✓ UserRecord: ${u.username}`);
+    }
+    console.log();
+
+    client = generateClient<Schema>({ authMode: 'lambda', authToken: idToken });
+    console.log('Authenticated as', adminUser.username, '(lambda auth)\n');
+  } else {
+    // ── API_KEY mode: no Cognito auth needed ──────────────────────────────────
+    client = generateClient<Schema>({ authMode: 'apiKey' });
+    console.log('Using API key auth\n');
+  }
 
   // ── Step 4: Check / clear existing data ─────────────────────────────────────
   const { data: existingRoles } = await client.models.RoleDefinition.list({ limit: 1 });
@@ -396,7 +410,17 @@ async function main() {
     client.models.RoleDefinition.create(r),
   );
 
-  // UserRecords already bootstrapped via DynamoDB in Step 3 — skip AppSync create.
+  // UserRecords: bootstrapped via DynamoDB for lambda auth; seeded via AppSync for apiKey auth.
+  if (!useLambdaAuth) {
+    await seedInBatches('user records', USERS, (u) =>
+      client.models.UserRecord.create({
+        cognitoId: cognitoSubs[u.username],
+        name: u.name,
+        username: u.username,
+        role: u.role,
+      }),
+    );
+  }
 
   await seedInBatches('widget permissions', PERMISSIONS, (p) =>
     client.models.WidgetPermission.create(p),

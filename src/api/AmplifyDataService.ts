@@ -1,5 +1,5 @@
 import { generateClient } from 'aws-amplify/data';
-import { signIn, signOut, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
+import { signIn, signOut, getCurrentUser } from 'aws-amplify/auth';
 import type { Schema } from '../../amplify/data/resource';
 import type { DataService, CreateUserInput, CreatePatientInput } from './DataService.ts';
 import {
@@ -105,10 +105,8 @@ export class AmplifyDataService implements DataService {
   // Amplify's generateClient authToken must be a static string — not a function.
   // We call getClient() before every operation so the Lambda authorizer always
   // receives a fresh (auto-refreshed) Cognito ID token.
-  private async getClient(): Promise<ReturnType<typeof generateClient<Schema>>> {
-    const session = await fetchAuthSession();
-    const token = session.tokens?.idToken?.toString() ?? '';
-    return generateClient<Schema>({ authMode: 'lambda', authToken: token });
+  private getClient(): ReturnType<typeof generateClient<Schema>> {
+    return generateClient<Schema>({ authMode: 'apiKey' });
   }
 
   // ─── Auth ──────────────────────────────────────────────────
@@ -136,7 +134,7 @@ export class AmplifyDataService implements DataService {
   async getCurrentSession(): Promise<User | null> {
     try {
       const { userId } = await getCurrentUser();
-      const client = await this.getClient();
+      const client = this.getClient();
       const { data } = await client.models.UserRecord.listUserRecordByCognitoId({
         cognitoId: userId,
       });
@@ -156,7 +154,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data } = await client.models.UserRecord.get({ id });
     return data ? toUser(data) : null;
   }
@@ -167,7 +165,7 @@ export class AmplifyDataService implements DataService {
     const q = query.trim();
     if (!q) return [];
 
-    const client = await this.getClient();
+    const client = this.getClient();
     if (/^\d+$/.test(q)) {
       const { data } = await client.models.Patient.listPatientByIdNumber({ idNumber: q });
       return data.map(toPatient);
@@ -183,7 +181,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async getPatientById(id: string): Promise<Patient | null> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data } = await client.models.Patient.get({ id });
     return data ? toPatient(data) : null;
   }
@@ -191,7 +189,7 @@ export class AmplifyDataService implements DataService {
   // ─── Widgets ───────────────────────────────────────────────
 
   async getWidgetsForPatient(patientId: string): Promise<PatientWidget[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data } = await client.models.PatientWidget.listPatientWidgetByPatientId({ patientId });
     return data.map(toWidget);
   }
@@ -199,7 +197,7 @@ export class AmplifyDataService implements DataService {
   // Permission check and audit log are now enforced server-side in updateWidgetOps Lambda.
   // _userId is kept in the signature to satisfy the DataService interface.
   async updateWidget(widgetId: string, newValue: string, _userId: string): Promise<PatientWidget> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data: updated, errors } = await client.mutations.updateWidget({ widgetId, newValue });
     if (errors && errors.length > 0) throw new Error(errors[0].message);
     if (!updated) throw new Error('Widget update failed');
@@ -209,7 +207,7 @@ export class AmplifyDataService implements DataService {
   // ─── Permissions ───────────────────────────────────────────
 
   async getWidgetPermissions(): Promise<WidgetPermission[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const all = await listAll((nextToken) =>
       client.models.WidgetPermission.list({ nextToken }),
     );
@@ -217,7 +215,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async canEditWidget(widgetType: WidgetType, userRole: string): Promise<boolean> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const perm = data[0];
     return perm ? (perm.rolesAllowedToEdit as string[]).includes(userRole) : false;
@@ -226,7 +224,7 @@ export class AmplifyDataService implements DataService {
   // ─── Audit ─────────────────────────────────────────────────
 
   async getAuditLog(patientId?: string): Promise<AuditLogEntry[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     if (patientId) {
       const { data } = await client.models.AuditLogEntry.listAuditLogEntryByPatientId({ patientId });
       return data.map(toAuditEntry);
@@ -240,7 +238,7 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Users ─────────────────────────────────────────
 
   async getAllUsers(): Promise<User[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const all = await listAll((nextToken) =>
       client.models.UserRecord.list({ nextToken }),
     );
@@ -248,7 +246,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async createUser(input: CreateUserInput): Promise<User> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const existing = await client.models.UserRecord.listUserRecordByUsername({ username: input.username });
     if (existing.data.length > 0) throw new Error('שם המשתמש כבר קיים');
 
@@ -272,7 +270,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async updateUser(id: string, updates: Partial<CreateUserInput>): Promise<User> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data: existing } = await client.models.UserRecord.get({ id });
     if (!existing) throw new Error('משתמש לא נמצא');
 
@@ -300,7 +298,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async deleteUser(id: string): Promise<void> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data } = await client.models.UserRecord.get({ id });
     if (!data) throw new Error('משתמש לא נמצא');
 
@@ -323,7 +321,7 @@ export class AmplifyDataService implements DataService {
       reader.readAsDataURL(file);
     });
 
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data: url, errors } = await client.mutations.uploadPatientPhoto({
       patientId,
       imageBase64: base64,
@@ -340,7 +338,7 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Patients ──────────────────────────────────────
 
   async getAllPatients(): Promise<Patient[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const all = await listAll((nextToken) =>
       client.models.Patient.list({ nextToken }),
     );
@@ -348,7 +346,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async createPatient(input: CreatePatientInput): Promise<Patient> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const existing = await client.models.Patient.listPatientByIdNumber({ idNumber: input.idNumber });
     if (existing.data.length > 0) throw new Error('מספר ת.ז כבר קיים במערכת');
 
@@ -382,7 +380,7 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Permissions ───────────────────────────────────
 
   async updateWidgetPermissions(widgetType: WidgetType, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data: existing } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const record = existing[0];
     if (!record) throw new Error('סוג ווידג\'ט לא נמצא');
@@ -398,7 +396,7 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Roles ─────────────────────────────────────────
 
   async getAllRoles(): Promise<RoleDefinition[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const all = await listAll((nextToken) =>
       client.models.RoleDefinition.list({ nextToken }),
     );
@@ -406,7 +404,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async createRole(id: string, label: string): Promise<RoleDefinition> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const existing = await client.models.RoleDefinition.listRoleDefinitionByRoleId({ roleId: id });
     if (existing.data.length > 0) throw new Error('מזהה התפקיד כבר קיים');
 
@@ -416,7 +414,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async deleteRole(id: string): Promise<void> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const existing = await client.models.RoleDefinition.listRoleDefinitionByRoleId({ roleId: id });
     const record = existing.data[0];
     if (!record) throw new Error('תפקיד לא נמצא');
@@ -453,7 +451,7 @@ export class AmplifyDataService implements DataService {
   // ─── Admin — Widget Config ─────────────────────────────────
 
   async getWidgetConfigs(): Promise<WidgetConfig[]> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const all = await listAll((nextToken) =>
       client.models.WidgetConfig.list({ nextToken }),
     );
@@ -461,7 +459,7 @@ export class AmplifyDataService implements DataService {
   }
 
   async updateWidgetConfig(widgetType: WidgetType, inputType: WidgetInputType, options: string[]): Promise<WidgetConfig> {
-    const client = await this.getClient();
+    const client = this.getClient();
     const { data: existing } = await client.models.WidgetConfig.listWidgetConfigByWidgetType({ widgetType });
     const record = existing[0];
     if (!record) throw new Error('סוג ווידג\'ט לא נמצא');
