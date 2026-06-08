@@ -15,11 +15,18 @@ export const handler: AppSyncResolverHandler<
 > = async (event) => {
   // Enforce admin-only access using role injected by the Lambda authorizer
   const identity = event.identity as { resolverContext?: { role?: string } } | null;
-  if (identity?.resolverContext?.role !== 'admin') {
+  const role = identity?.resolverContext?.role;
+  if (!role) {
+    throw new Error('Unauthorized');
+  }
+  if (role !== 'admin') {
     throw new Error('Forbidden: admin role required');
   }
 
-  const { fieldName } = event.info;
+  const fieldName = event.info?.fieldName;
+  if (!fieldName) {
+    throw new Error('Unknown operation');
+  }
   const args = event.arguments;
 
   if (fieldName === 'userAdminCreate') {

@@ -47,7 +47,7 @@ export interface DataService {
 
   // Permissions
   getWidgetPermissions(): Promise<WidgetPermission[]>;
-  canEditWidget(widgetType: WidgetType, userRole: string): Promise<boolean>;
+  canEditWidget(widgetType: string, userRole: string): Promise<boolean>;
 
   // Audit
   getAuditLog(patientId?: string): Promise<AuditLogEntry[]>;
@@ -66,7 +66,7 @@ export interface DataService {
   createPatient(input: CreatePatientInput): Promise<Patient>;
 
   // Admin — Permissions
-  updateWidgetPermissions(widgetType: WidgetType, rolesAllowedToEdit: string[]): Promise<WidgetPermission>;
+  updateWidgetPermissions(widgetType: string, rolesAllowedToEdit: string[]): Promise<WidgetPermission>;
 
   // Admin — Roles
   getAllRoles(): Promise<RoleDefinition[]>;

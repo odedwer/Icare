@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import type { Patient } from '../types/index.ts';
-import { Role } from '../types/index.ts';
-
-const PHOTO_UPLOAD_ROLES = new Set<string>([Role.Admin, Role.HeadNurse]);
+import PhotoSourceModal from '../components/PhotoSourceModal.tsx';
+import PhotoCropModal from '../components/PhotoCropModal.tsx';
 
 function calcAge(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
@@ -28,7 +27,9 @@ export default function ConfirmPage() {
   );
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [canUploadPhoto, setCanUploadPhoto] = useState(false);
+  const [sourceModalOpen, setSourceModalOpen] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!patient && patientId) {
@@ -36,22 +37,30 @@ export default function ConfirmPage() {
     }
   }, [patientId, patient, dataService]);
 
-  const canUploadPhoto = user && PHOTO_UPLOAD_ROLES.has(user.role);
+  useEffect(() => {
+    if (user) {
+      dataService.canEditWidget('photo_upload', user.role).then(setCanUploadPhoto);
+    }
+  }, [user, dataService]);
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !patient) return;
+  const handleFileSelected = (file: File) => {
+    setSourceModalOpen(false);
+    setCropFile(file);
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    setCropFile(null);
+    if (!patient) return;
     setUploading(true);
     setUploadError('');
     try {
+      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
       const newUrl = await dataService.uploadPatientPhoto(patient.id, file);
-      setPatient({ ...patient, photoUrl: newUrl });
+      setPatient({ ...patient, photoUrl: `${newUrl}?t=${Date.now()}` });
     } catch (err: unknown) {
       setUploadError(err instanceof Error ? err.message : 'שגיאה בהעלאת התמונה');
     }
     setUploading(false);
-    // Reset input so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (!patient) return <div className="loading">טוען…</div>;
@@ -70,24 +79,22 @@ export default function ConfirmPage() {
       <div className="confirm-container">
         <div className="confirm-card">
           <div className="confirm-photo-wrapper">
-            <img src={patient.photoUrl} alt={patient.fullName} className="confirm-photo" />
+            <img
+              src={patient.photoUrl}
+              alt={patient.fullName}
+              className="confirm-photo"
+              crossOrigin="anonymous"
+            />
             {canUploadPhoto && (
               <button
                 className="btn-photo-upload"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
+                onClick={() => setSourceModalOpen(true)}
+                disabled={uploading || cropFile !== null}
                 title="החלפת תמונה"
               >
                 {uploading ? '…' : '📷'}
               </button>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handlePhotoChange}
-            />
           </div>
           {uploadError && <p className="upload-error">{uploadError}</p>}
           <h2 className="confirm-name">{patient.fullName}</h2>
@@ -104,6 +111,21 @@ export default function ConfirmPage() {
           </button>
         </div>
       </div>
+
+      {sourceModalOpen && (
+        <PhotoSourceModal
+          onFileSelected={handleFileSelected}
+          onCancel={() => setSourceModalOpen(false)}
+        />
+      )}
+
+      {cropFile && (
+        <PhotoCropModal
+          file={cropFile}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropFile(null)}
+        />
+      )}
     </div>
   );
 }

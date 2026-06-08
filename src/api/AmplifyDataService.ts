@@ -214,7 +214,7 @@ export class AmplifyDataService implements DataService {
     return all.map(toPermission);
   }
 
-  async canEditWidget(widgetType: WidgetType, userRole: string): Promise<boolean> {
+  async canEditWidget(widgetType: string, userRole: string): Promise<boolean> {
     const client = this.getClient();
     const { data } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const perm = data[0];
@@ -250,12 +250,20 @@ export class AmplifyDataService implements DataService {
     const existing = await client.models.UserRecord.listUserRecordByUsername({ username: input.username });
     if (existing.data.length > 0) throw new Error('שם המשתמש כבר קיים');
 
-    const { data: cognitoIdData, errors } = await client.mutations.userAdminCreate({
-      username: input.username,
-      password: input.password,
-      role: input.role,
-    });
-    if (errors && errors.length > 0) throw new Error(errors[0].message);
+    let cognitoIdData: string | null | undefined;
+    let createErrors: { message: string }[] | undefined;
+    try {
+      const result = await client.mutations.userAdminCreate({
+        username: input.username,
+        password: input.password,
+        role: input.role,
+      });
+      cognitoIdData = result.data;
+      createErrors = result.errors ?? undefined;
+    } catch (e: unknown) {
+      throw new Error(e instanceof Error ? e.message : 'שגיאה בביצוע הפעולה — ודא שאתה מחובר כמנהל');
+    }
+    if (createErrors && createErrors.length > 0) throw new Error(createErrors[0].message);
     const cognitoId = cognitoIdData;
     if (!cognitoId) throw new Error('Failed to create Cognito user');
 
@@ -280,11 +288,17 @@ export class AmplifyDataService implements DataService {
     }
 
     if (updates.password) {
-      const { errors } = await client.mutations.userAdminSetPassword({
-        username: existing.username,
-        password: updates.password,
-      });
-      if (errors && errors.length > 0) throw new Error(errors[0].message);
+      let setPasswordErrors: { message: string }[] | undefined;
+      try {
+        const result = await client.mutations.userAdminSetPassword({
+          username: existing.username,
+          password: updates.password,
+        });
+        setPasswordErrors = result.errors ?? undefined;
+      } catch (e: unknown) {
+        throw new Error(e instanceof Error ? e.message : 'שגיאה בביצוע הפעולה — ודא שאתה מחובר כמנהל');
+      }
+      if (setPasswordErrors && setPasswordErrors.length > 0) throw new Error(setPasswordErrors[0].message);
     }
 
     const { data: updated } = await client.models.UserRecord.update({
@@ -302,8 +316,14 @@ export class AmplifyDataService implements DataService {
     const { data } = await client.models.UserRecord.get({ id });
     if (!data) throw new Error('משתמש לא נמצא');
 
-    const { errors } = await client.mutations.userAdminDelete({ username: data.username });
-    if (errors && errors.length > 0) throw new Error(errors[0].message);
+    let deleteErrors: { message: string }[] | undefined;
+    try {
+      const result = await client.mutations.userAdminDelete({ username: data.username });
+      deleteErrors = result.errors ?? undefined;
+    } catch (e: unknown) {
+      throw new Error(e instanceof Error ? e.message : 'שגיאה בביצוע הפעולה — ודא שאתה מחובר כמנהל');
+    }
+    if (deleteErrors && deleteErrors.length > 0) throw new Error(deleteErrors[0].message);
 
     await client.models.UserRecord.delete({ id });
   }
@@ -322,12 +342,20 @@ export class AmplifyDataService implements DataService {
     });
 
     const client = this.getClient();
-    const { data: url, errors } = await client.mutations.uploadPatientPhoto({
-      patientId,
-      imageBase64: base64,
-      contentType: file.type || 'image/jpeg',
-    });
-    if (errors && errors.length > 0) throw new Error(errors[0].message);
+    let url: string | null | undefined;
+    let uploadErrors: { message: string }[] | null | undefined;
+    try {
+      const result = await client.mutations.uploadPatientPhoto({
+        patientId,
+        imageBase64: base64,
+        contentType: file.type || 'image/jpeg',
+      });
+      url = result.data;
+      uploadErrors = result.errors;
+    } catch (e: unknown) {
+      throw new Error(e instanceof Error ? e.message : 'שגיאה בהעלאת התמונה — ודא שאתה מחובר כמנהל');
+    }
+    if (uploadErrors && uploadErrors.length > 0) throw new Error(uploadErrors[0].message);
     if (!url) throw new Error('Failed to upload photo');
 
     await client.models.Patient.update({ id: patientId, photoUrl: url });
@@ -379,7 +407,7 @@ export class AmplifyDataService implements DataService {
 
   // ─── Admin — Permissions ───────────────────────────────────
 
-  async updateWidgetPermissions(widgetType: WidgetType, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
+  async updateWidgetPermissions(widgetType: string, rolesAllowedToEdit: string[]): Promise<WidgetPermission> {
     const client = this.getClient();
     const { data: existing } = await client.models.WidgetPermission.listWidgetPermissionByWidgetType({ widgetType });
     const record = existing[0];
