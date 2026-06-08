@@ -10,9 +10,9 @@ export const handler: AppSyncResolverHandler<
   string
 > = async (event) => {
   const identity = event.identity as { resolverContext?: { userId?: string } } | null;
-  const userId = identity?.resolverContext?.userId;
-  if (!userId) {
+  if (!identity?.resolverContext?.userId) {
     console.warn('[photoOps] No resolverContext.userId — running under API_KEY auth');
+    // Role enforcement is client-side; server-side enforcement deferred (see spec).
   }
 
   const { patientId, imageBase64, contentType } = event.arguments as {
@@ -34,5 +34,6 @@ export const handler: AppSyncResolverHandler<
     }),
   );
 
+  // Return CloudFront URL — S3 bucket is now private
   return `https://${CLOUDFRONT_DOMAIN}/${key}`;
 };
