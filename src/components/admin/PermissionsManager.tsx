@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext.tsx';
 import type { WidgetPermission, RoleDefinition } from '../../types/index.ts';
-import { WidgetType, WIDGET_META } from '../../types/index.ts';
+import { WIDGET_META } from '../../types/index.ts';
 
-const ALL_WIDGET_TYPES = Object.values(WidgetType);
+const EXTRA_WIDGET_META: Record<string, { label: string; icon: string }> = {
+  photo_upload: { label: 'העלאת תמונה', icon: '📷' },
+};
+
+function getWidgetMeta(wt: string): { label: string; icon: string } {
+  return (WIDGET_META as Record<string, { label: string; icon: string }>)[wt]
+    ?? EXTRA_WIDGET_META[wt]
+    ?? { label: wt, icon: '?' };
+}
 
 export default function PermissionsManager() {
   const dataService = useData();
@@ -24,12 +32,12 @@ export default function PermissionsManager() {
     });
   }, [dataService]);
 
-  const isChecked = (widgetType: WidgetType, roleId: string): boolean => {
+  const isChecked = (widgetType: string, roleId: string): boolean => {
     const perm = permissions.find((p) => p.widgetType === widgetType);
     return perm ? perm.rolesAllowedToEdit.includes(roleId) : false;
   };
 
-  const handleToggle = async (widgetType: WidgetType, roleId: string) => {
+  const handleToggle = async (widgetType: string, roleId: string) => {
     setSaving(widgetType);
     setSuccess('');
     const perm = permissions.find((p) => p.widgetType === widgetType);
@@ -71,24 +79,28 @@ export default function PermissionsManager() {
             </tr>
           </thead>
           <tbody>
-            {ALL_WIDGET_TYPES.map((wt) => (
-              <tr key={wt}>
-                <td>
-                  <span className="widget-icon-small">{WIDGET_META[wt].icon}</span>
-                  {WIDGET_META[wt].label}
-                </td>
-                {roles.map((r) => (
-                  <td key={r.id} className="checkbox-cell">
-                    <input
-                      type="checkbox"
-                      checked={isChecked(wt, r.id)}
-                      onChange={() => handleToggle(wt, r.id)}
-                      disabled={saving === wt}
-                    />
+            {permissions.map((perm) => {
+              const wt = perm.widgetType;
+              const meta = getWidgetMeta(wt);
+              return (
+                <tr key={wt}>
+                  <td>
+                    <span className="widget-icon-small">{meta.icon}</span>
+                    {meta.label}
                   </td>
-                ))}
-              </tr>
-            ))}
+                  {roles.map((r) => (
+                    <td key={r.id} className="checkbox-cell">
+                      <input
+                        type="checkbox"
+                        checked={isChecked(wt, r.id)}
+                        onChange={() => handleToggle(wt, r.id)}
+                        disabled={saving === wt}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
