@@ -1,16 +1,9 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import { UserPool, UserPoolClient, AccountRecovery } from 'aws-cdk-lib/aws-cognito';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { PolicyStatement, AnyPrincipal } from 'aws-cdk-lib/aws-iam';
 import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
-import { Bucket, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
-import {
-  Distribution,
-  ViewerProtocolPolicy,
-  AllowedMethods,
-  CachePolicy,
-} from 'aws-cdk-lib/aws-cloudfront';
-import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
+import { Bucket, HttpMethods } from 'aws-cdk-lib/aws-s3';
 import type { IConstruct } from 'constructs';
 import { data } from './data/resource.ts';
 
@@ -113,30 +106,36 @@ widgetTable.grantReadWriteData(updateWidgetOpsLambda);
 permissionTable.grantReadData(updateWidgetOpsLambda);
 auditTable.grantWriteData(updateWidgetOpsLambda);
 
-// ─── S3 + CloudFront for patient photos ───────────────────────────────────────
+// ─── S3 for patient photos ─────────────────────────────────────────────────────
 
 const photoStack = backend.createStack('PhotoStack');
 
 const photoBucket = new Bucket(photoStack, 'PatientPhotosBucket', {
-  // Fully private — access only via CloudFront OAC
-  blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+  // Public read for patients/ — photos served directly via S3 URL
   removalPolicy: RemovalPolicy.RETAIN,
+  cors: [
+    {
+      allowedOrigins: ['https://roglit.org'],
+      allowedMethods: [HttpMethods.GET],
+      allowedHeaders: ['*'],
+      maxAge: 3600,
+    },
+  ],
 });
 
-const photoDistribution = new Distribution(photoStack, 'PhotoDistribution', {
-  defaultBehavior: {
-    // S3BucketOrigin.withOriginAccessControl creates the OAC and wires the bucket policy automatically
-    origin: S3BucketOrigin.withOriginAccessControl(photoBucket),
-    viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-    allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
-    cachePolicy: CachePolicy.CACHING_OPTIMIZED,
-  },
-});
+// Allow public GET on patients/*
+photoBucket.addToResourcePolicy(
+  new PolicyStatement({
+    actions: ['s3:GetObject'],
+    principals: [new AnyPrincipal()],
+    resources: [photoBucket.arnForObjects('patients/*')],
+  }),
+);
 
 // Grant the photoOps Lambda permission to put objects into the bucket
 const photoOpsLambda = findLambdaInTree(cdkApp, 'photoops');
 photoOpsLambda.addEnvironment('PHOTO_BUCKET_NAME', photoBucket.bucketName);
-photoOpsLambda.addEnvironment('CLOUDFRONT_DOMAIN', photoDistribution.domainName);
+photoOpsLambda.addEnvironment('AWS_S3_REGION', photoStack.region);
 photoBucket.grantPut(photoOpsLambda);
 
 // ─── Outputs ───────────────────────────────────────────────────────────────────
@@ -147,7 +146,6 @@ backend.addOutput({
     userPoolClientId: userPoolClient.userPoolClientId,
     region: authStack.region,
     photoBucketName: photoBucket.bucketName,
-    cloudfrontDomain: photoDistribution.domainName,
     userRecordTableName: userRecordTable.tableName,
   },
 });

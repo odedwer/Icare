@@ -3,7 +3,7 @@ import type { AppSyncResolverHandler } from 'aws-lambda';
 
 const s3 = new S3Client({});
 const BUCKET = process.env.PHOTO_BUCKET_NAME!;
-const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN!;
+const REGION = process.env.AWS_S3_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
 
 export const handler: AppSyncResolverHandler<
   { patientId: string; imageBase64: string; contentType: string },
@@ -34,6 +34,5 @@ export const handler: AppSyncResolverHandler<
     }),
   );
 
-  // Return CloudFront URL — S3 bucket is now private
-  return `https://${CLOUDFRONT_DOMAIN}/${key}`;
+  return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
 };
